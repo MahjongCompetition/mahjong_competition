@@ -1,19 +1,20 @@
 package com.rogister.mjcompetition.controller;
 
 import com.rogister.mjcompetition.dto.ApiResponse;
+import com.rogister.mjcompetition.dto.MatchResultCreateRequest;
 import com.rogister.mjcompetition.entity.Competition;
-import com.rogister.mjcompetition.entity.CompetitionRound;
+
 import com.rogister.mjcompetition.entity.MatchResult;
+import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.service.CompetitionService;
-import com.rogister.mjcompetition.service.CompetitionRoundService;
 import com.rogister.mjcompetition.service.MatchResultService;
 import com.rogister.mjcompetition.service.PlayerService;
+import com.rogister.mjcompetition.repository.PlayerRoundStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import com.rogister.mjcompetition.entity.Player;
 
 @RestController
 @RequestMapping("/api/match-results")
@@ -27,21 +28,86 @@ public class MatchResultController {
     private CompetitionService competitionService;
     
     @Autowired
-    private CompetitionRoundService competitionRoundService;
+    private PlayerService playerService;
     
     @Autowired
-    private PlayerService playerService;
+    private PlayerRoundStatusRepository playerRoundStatusRepository;
     
     /**
      * 创建比赛成绩
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<MatchResult>> createMatchResult(@RequestBody MatchResult matchResult) {
+    public ResponseEntity<ApiResponse<MatchResult>> createMatchResult(@RequestBody MatchResultCreateRequest request) {
         try {
+            // 验证请求数据
+            if (request.getCompetitionId() == null) {
+                throw new RuntimeException("比赛ID不能为空");
+            }
+            if (request.getRoundNumber() == null) {
+                throw new RuntimeException("轮次编号不能为空");
+            }
+            if (request.getMatchNumber() == null) {
+                throw new RuntimeException("比赛编号不能为空");
+            }
+            
+            // 验证并获取比赛对象
+            Competition competition = competitionService.findById(request.getCompetitionId())
+                    .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + request.getCompetitionId()));
+            
+            // 验证并获取四个玩家对象
+            Player eastPlayer = playerService.findById(request.getEastPlayerId())
+                    .orElseThrow(() -> new RuntimeException("东家玩家不存在，ID: " + request.getEastPlayerId()));
+            
+            Player southPlayer = playerService.findById(request.getSouthPlayerId())
+                    .orElseThrow(() -> new RuntimeException("南家玩家不存在，ID: " + request.getSouthPlayerId()));
+            
+            Player westPlayer = playerService.findById(request.getWestPlayerId())
+                    .orElseThrow(() -> new RuntimeException("西家玩家不存在，ID: " + request.getWestPlayerId()));
+            
+            Player northPlayer = playerService.findById(request.getNorthPlayerId())
+                    .orElseThrow(() -> new RuntimeException("北家玩家不存在，ID: " + request.getNorthPlayerId()));
+            
+            // 验证四个玩家是否都有资格参加该轮次比赛
+            validatePlayerRoundEligibility(eastPlayer, competition, request.getRoundNumber(), "东家");
+            validatePlayerRoundEligibility(southPlayer, competition, request.getRoundNumber(), "南家");
+            validatePlayerRoundEligibility(westPlayer, competition, request.getRoundNumber(), "西家");
+            validatePlayerRoundEligibility(northPlayer, competition, request.getRoundNumber(), "北家");
+            
+            // 创建MatchResult对象
+            MatchResult matchResult = new MatchResult();
+            matchResult.setCompetition(competition);
+            matchResult.setRoundNumber(request.getRoundNumber());  // 直接设置轮次编号
+            matchResult.setMatchNumber(request.getMatchNumber());
+            matchResult.setMatchName(request.getMatchName());
+            
+            // 验证关键数据是否正确设置
+            if (matchResult.getCompetition() == null) {
+                throw new RuntimeException("设置比赛信息失败，原始competition对象ID: " + (competition != null ? competition.getId() : "null"));
+            }
+            
+            matchResult.setEastPlayer(eastPlayer);
+            matchResult.setEastScore(request.getEastScore());
+            matchResult.setEastPenalty(request.getEastPenalty() != null ? request.getEastPenalty() : 0);
+            
+            matchResult.setSouthPlayer(southPlayer);
+            matchResult.setSouthScore(request.getSouthScore());
+            matchResult.setSouthPenalty(request.getSouthPenalty() != null ? request.getSouthPenalty() : 0);
+            
+            matchResult.setWestPlayer(westPlayer);
+            matchResult.setWestScore(request.getWestScore());
+            matchResult.setWestPenalty(request.getWestPenalty() != null ? request.getWestPenalty() : 0);
+            
+            matchResult.setNorthPlayer(northPlayer);
+            matchResult.setNorthScore(request.getNorthScore());
+            matchResult.setNorthPenalty(request.getNorthPenalty() != null ? request.getNorthPenalty() : 0);
+            
+            matchResult.setRemarks(request.getRemarks());
+            
+            // 调用服务创建比赛成绩
             MatchResult created = matchResultService.createMatchResult(matchResult);
             return ResponseEntity.ok(ApiResponse.success("创建比赛成绩成功", created));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("创建比赛成绩失败"));
+            return ResponseEntity.ok(ApiResponse.error("创建比赛成绩失败: " + e.getMessage()));
         }
     }
     
@@ -112,6 +178,34 @@ public class MatchResultController {
     }
     
     /**
+     * 获取玩家在某轮次的PT分数总和
+     */
+    @GetMapping("/player-pt-score")
+    public ResponseEntity<ApiResponse<Double>> getPlayerPtScore(
+            @RequestParam Long competitionId, 
+            @RequestParam Integer roundNumber,
+            @RequestParam Long playerId) {
+        try {
+            // 查找比赛
+            Competition competition = competitionService.findById(competitionId)
+                    .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
+            
+            // 查找玩家
+            Player player = playerService.findById(playerId)
+                    .orElseThrow(() -> new RuntimeException("玩家不存在，ID: " + playerId));
+            
+            // 获取玩家在该轮次的PT分数总和
+            Double ptScoreSum = matchResultService.getPlayerPtScoreSum(competitionId, roundNumber, playerId);
+            
+            return ResponseEntity.ok(ApiResponse.success(ptScoreSum != null ? ptScoreSum : 0.0));
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("获取玩家PT分数失败"));
+        }
+    }
+    
+    /**
      * 验证比赛成绩总分
      */
     @PostMapping("/validate-scores")
@@ -137,7 +231,7 @@ public class MatchResultController {
             @RequestParam Long competitionId, 
             @RequestParam Long roundId) {
         try {
-            // 这里需要根据competitionId和roundId查找对应的Competition和CompetitionRound对象
+            // 这里需要根据competitionId和roundNumber查找对应的Competition对象
             // 为了简化，这里返回一个示例值
             return ResponseEntity.ok(ApiResponse.success(1));
         } catch (Exception e) {
@@ -146,25 +240,40 @@ public class MatchResultController {
     }
     
     /**
+     * 验证玩家是否有资格参加该轮次比赛
+     */
+    private void validatePlayerRoundEligibility(Player player, Competition competition, Integer roundNumber, String position) {
+        // 查找玩家在该轮次的状态
+        boolean eligible = playerRoundStatusRepository
+                .findByPlayerAndCompetitionAndRoundNumber(player, competition, roundNumber)
+                .map(status -> !status.getIsEliminated())  // 未被淘汰的玩家可以参赛
+                .orElse(false);  // 如果没有找到状态记录，表示不能参赛
+        
+        if (!eligible) {
+            throw new RuntimeException(position + "玩家(ID:" + player.getId() + ", 姓名:" + player.getNickname() + ")没有资格参加第" + roundNumber + "轮比赛");
+        }
+    }
+    
+
+    
+    /**
      * 根据比赛和轮次查询比赛记录，按照时间从早到晚排序
      */
     @GetMapping("/round-records")
     public ResponseEntity<ApiResponse<List<MatchResult>>> getRoundRecordsByTime(
             @RequestParam Long competitionId, 
-            @RequestParam Long roundId,
+            @RequestParam Integer roundNumber,
             @RequestParam(defaultValue = "false") boolean includeMatchNumber) {
         try {
-            // 查找比赛和轮次
+            // 查找比赛
             Competition competition = competitionService.findById(competitionId)
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
-            CompetitionRound round = competitionRoundService.findById(roundId)
-                    .orElseThrow(() -> new RuntimeException("轮次不存在，ID: " + roundId));
             
             List<MatchResult> results;
             if (includeMatchNumber) {
-                results = matchResultService.findByCompetitionAndRoundOrderByTimeAndNumber(competition, round);
+                results = matchResultService.findByCompetitionAndRoundOrderByTimeAndNumber(competition, roundNumber);
             } else {
-                results = matchResultService.findByCompetitionAndRoundOrderByTime(competition, round);
+                results = matchResultService.findByCompetitionAndRoundOrderByTime(competition, roundNumber);
             }
             
             return ResponseEntity.ok(ApiResponse.success(results));
@@ -181,15 +290,13 @@ public class MatchResultController {
     @GetMapping("/round-records/detailed")
     public ResponseEntity<ApiResponse<List<MatchResult>>> getRoundRecordsByTimeAndNumber(
             @RequestParam Long competitionId, 
-            @RequestParam Long roundId) {
+            @RequestParam Integer roundNumber) {
         try {
-            // 查找比赛和轮次
+            // 查找比赛
             Competition competition = competitionService.findById(competitionId)
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
-            CompetitionRound round = competitionRoundService.findById(roundId)
-                    .orElseThrow(() -> new RuntimeException("轮次不存在，ID: " + roundId));
             
-            List<MatchResult> results = matchResultService.findByCompetitionAndRoundOrderByTimeAndNumber(competition, round);
+            List<MatchResult> results = matchResultService.findByCompetitionAndRoundOrderByTimeAndNumber(competition, roundNumber);
             return ResponseEntity.ok(ApiResponse.success(results));
         } catch (RuntimeException e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
@@ -204,15 +311,13 @@ public class MatchResultController {
     @GetMapping("/round-records/formatted")
     public ResponseEntity<ApiResponse<List<RoundRecordDTO>>> getFormattedRoundRecords(
             @RequestParam Long competitionId, 
-            @RequestParam Long roundId) {
+            @RequestParam Integer roundNumber) {
         try {
-            // 查找比赛和轮次
+            // 查找比赛
             Competition competition = competitionService.findById(competitionId)
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
-            CompetitionRound round = competitionRoundService.findById(roundId)
-                    .orElseThrow(() -> new RuntimeException("轮次不存在，ID: " + roundId));
             
-            List<MatchResult> results = matchResultService.findByCompetitionAndRoundOrderByTime(competition, round);
+            List<MatchResult> results = matchResultService.findByCompetitionAndRoundOrderByTime(competition, roundNumber);
             List<RoundRecordDTO> formattedResults = results.stream()
                     .map(RoundRecordDTO::fromMatchResult)
                     .toList();
@@ -231,16 +336,14 @@ public class MatchResultController {
     @GetMapping("/round-rankings")
     public ResponseEntity<ApiResponse<List<MatchResultService.PlayerRoundRanking>>> getRoundPlayerRankings(
             @RequestParam Long competitionId, 
-            @RequestParam Long roundId) {
+            @RequestParam Integer roundNumber) {
         try {
-            // 查找比赛和轮次
+            // 查找比赛
             Competition competition = competitionService.findById(competitionId)
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
-            CompetitionRound round = competitionRoundService.findById(roundId)
-                    .orElseThrow(() -> new RuntimeException("轮次不存在，ID: " + roundId));
             
             List<MatchResultService.PlayerRoundRanking> rankings = 
-                    matchResultService.calculatePlayerRoundRankings(competition, round);
+                    matchResultService.calculatePlayerRoundRankings(competition, roundNumber);
             
             // 设置排名
             for (int i = 0; i < rankings.size(); i++) {
@@ -261,20 +364,18 @@ public class MatchResultController {
     @GetMapping("/round-player-ranking")
     public ResponseEntity<ApiResponse<MatchResultService.PlayerRoundRanking>> getPlayerRoundRanking(
             @RequestParam Long competitionId, 
-            @RequestParam Long roundId,
+            @RequestParam Integer roundNumber,
             @RequestParam Long playerId) {
         try {
-            // 查找比赛、轮次和玩家
+            // 查找比赛和玩家
             Competition competition = competitionService.findById(competitionId)
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
-            CompetitionRound round = competitionRoundService.findById(roundId)
-                    .orElseThrow(() -> new RuntimeException("轮次不存在，ID: " + roundId));
             
             Player player = playerService.findById(playerId)
                     .orElseThrow(() -> new RuntimeException("玩家不存在，ID: " + playerId));
             
             MatchResultService.PlayerRoundRanking ranking = 
-                    matchResultService.calculatePlayerRoundRanking(competition, round, player);
+                    matchResultService.calculatePlayerRoundRanking(competition, roundNumber, player);
             
             return ResponseEntity.ok(ApiResponse.success(ranking));
         } catch (RuntimeException e) {
@@ -290,16 +391,14 @@ public class MatchResultController {
     @GetMapping("/round-rankings/formatted")
     public ResponseEntity<ApiResponse<List<PlayerRankingDTO>>> getFormattedRoundPlayerRankings(
             @RequestParam Long competitionId, 
-            @RequestParam Long roundId) {
+            @RequestParam Integer roundNumber) {
         try {
-            // 查找比赛和轮次
+            // 查找比赛
             Competition competition = competitionService.findById(competitionId)
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
-            CompetitionRound round = competitionRoundService.findById(roundId)
-                    .orElseThrow(() -> new RuntimeException("轮次不存在，ID: " + roundId));
             
             List<MatchResultService.PlayerRoundRanking> rankings = 
-                    matchResultService.calculatePlayerRoundRankings(competition, round);
+                    matchResultService.calculatePlayerRoundRankings(competition, roundNumber);
             
             // 设置排名
             for (int i = 0; i < rankings.size(); i++) {

@@ -22,9 +22,8 @@ public class MatchResult {
     @JoinColumn(name = "competition_id", nullable = false)
     private Competition competition;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "round_id", nullable = false)
-    private CompetitionRound round;
+    @Column(name = "round_number", nullable = false)
+    private Integer roundNumber;
     
     @Column(name = "match_number", nullable = false)
     private Integer matchNumber;
@@ -43,6 +42,9 @@ public class MatchResult {
     @Column(name = "east_penalty", nullable = false)
     private Integer eastPenalty = 0; // 东家罚分，默认为0
     
+    @Column(name = "east_pt_score", nullable = false)
+    private Double eastPtScore = 0.0; // 东家PT分数
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "south_player_id", nullable = false)
     private Player southPlayer;
@@ -52,6 +54,9 @@ public class MatchResult {
     
     @Column(name = "south_penalty", nullable = false)
     private Integer southPenalty = 0; // 南家罚分，默认为0
+    
+    @Column(name = "south_pt_score", nullable = false)
+    private Double southPtScore = 0.0; // 南家PT分数
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "west_player_id", nullable = false)
@@ -63,6 +68,9 @@ public class MatchResult {
     @Column(name = "west_penalty", nullable = false)
     private Integer westPenalty = 0; // 西家罚分，默认为0
     
+    @Column(name = "west_pt_score", nullable = false)
+    private Double westPtScore = 0.0; // 西家PT分数
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "north_player_id", nullable = false)
     private Player northPlayer;
@@ -72,6 +80,9 @@ public class MatchResult {
     
     @Column(name = "north_penalty", nullable = false)
     private Integer northPenalty = 0; // 北家罚分，默认为0
+    
+    @Column(name = "north_pt_score", nullable = false)
+    private Double northPtScore = 0.0; // 北家PT分数
     
     @Column(name = "total_score", nullable = false)
     private Integer totalScore;
@@ -89,7 +100,7 @@ public class MatchResult {
     private LocalDateTime updatedAt;
     
     // 带参数的构造函数
-    public MatchResult(Competition competition, CompetitionRound round, Integer matchNumber,
+    public MatchResult(Competition competition, Integer roundNumber, Integer matchNumber,
                       Player eastPlayer, Player southPlayer, Player westPlayer, Player northPlayer) {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -98,8 +109,12 @@ public class MatchResult {
         this.southPenalty = 0;
         this.westPenalty = 0;
         this.northPenalty = 0;
+        this.eastPtScore = 0.0;
+        this.southPtScore = 0.0;
+        this.westPtScore = 0.0;
+        this.northPtScore = 0.0;
         this.competition = competition;
-        this.round = round;
+        this.roundNumber = roundNumber;
         this.matchNumber = matchNumber;
         this.eastPlayer = eastPlayer;
         this.southPlayer = southPlayer;
@@ -118,6 +133,31 @@ public class MatchResult {
     // 验证总分是否为100000
     public boolean isValidTotalScore() {
         return this.totalScore == 100000;
+    }
+    
+    // 计算并设置PT分数
+    public void calculateAndSetPtScores() {
+        List<PlayerRank> playerRanks = calculatePlayerRanks();
+        
+        for (PlayerRank playerRank : playerRanks) {
+            Double ptScore = playerRank.getActualPoints();
+            String position = playerRank.getPosition();
+            
+            switch (position) {
+                case "东":
+                    this.eastPtScore = ptScore != null ? ptScore : 0.0;
+                    break;
+                case "南":
+                    this.southPtScore = ptScore != null ? ptScore : 0.0;
+                    break;
+                case "西":
+                    this.westPtScore = ptScore != null ? ptScore : 0.0;
+                    break;
+                case "北":
+                    this.northPtScore = ptScore != null ? ptScore : 0.0;
+                    break;
+            }
+        }
     }
     
     // 计算玩家实际得分（包含排名和罚分）
@@ -207,6 +247,12 @@ public class MatchResult {
         public String getPosition() { return position; }
         public Integer getRank() { return rank; }
         public Double getActualPoints() { return actualPoints; }
+    }
+    
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
     
     @PreUpdate

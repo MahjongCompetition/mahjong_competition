@@ -22,6 +22,17 @@ public class MatchResultService {
      * 创建比赛成绩
      */
     public MatchResult createMatchResult(MatchResult matchResult) {
+        // 验证基础数据
+        if (matchResult.getCompetition() == null) {
+            throw new RuntimeException("比赛信息不能为空");
+        }
+        if (matchResult.getRoundNumber() == null) {
+            throw new RuntimeException("轮次编号不能为空");
+        }
+        if (matchResult.getMatchNumber() == null) {
+            throw new RuntimeException("比赛编号不能为空");
+        }
+        
         // 验证总分是否为100000
         matchResult.calculateTotalScore();
         if (!matchResult.isValidTotalScore()) {
@@ -30,7 +41,7 @@ public class MatchResultService {
         
         // 检查比赛编号是否已存在
         if (matchResultRepository.findByCompetitionAndRoundAndMatchNumber(
-                matchResult.getCompetition().getId(), matchResult.getRound().getRoundNumber(), matchResult.getMatchNumber()).isPresent()) {
+                matchResult.getCompetition().getId(), matchResult.getRoundNumber(), matchResult.getMatchNumber()).isPresent()) {
             throw new RuntimeException("该轮次的比赛编号已存在: " + matchResult.getMatchNumber());
         }
         
@@ -45,6 +56,9 @@ public class MatchResultService {
         if (matchResult.getWestPenalty() == null) matchResult.setWestPenalty(0);
         if (matchResult.getNorthPenalty() == null) matchResult.setNorthPenalty(0);
         
+        // 计算并设置PT分数
+        matchResult.calculateAndSetPtScores();
+        
         return matchResultRepository.save(matchResult);
     }
     
@@ -58,66 +72,62 @@ public class MatchResultService {
     /**
      * 根据比赛、轮次和比赛编号查找比赛成绩
      */
-    public Optional<MatchResult> findByCompetitionAndRoundAndMatchNumber(Competition competition, CompetitionRound round, Integer matchNumber) {
-        return matchResultRepository.findByCompetitionAndRoundAndMatchNumber(competition.getId(), round.getRoundNumber(), matchNumber);
+    public Optional<MatchResult> findByCompetitionAndRoundAndMatchNumber(Competition competition, Integer roundNumber, Integer matchNumber) {
+        return matchResultRepository.findByCompetitionAndRoundAndMatchNumber(competition.getId(), roundNumber, matchNumber);
     }
     
     /**
      * 根据比赛和轮次查找所有比赛成绩
      */
-    public List<MatchResult> findByCompetitionAndRound(Competition competition, CompetitionRound round) {
-        return matchResultRepository.findByCompetitionAndRoundOrderByMatchNumber(competition.getId(), round.getRoundNumber());
+    public List<MatchResult> findByCompetitionAndRound(Competition competition, Integer roundNumber) {
+        return matchResultRepository.findByCompetitionAndRoundOrderByMatchNumber(competition.getId(), roundNumber);
     }
     
     /**
      * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序
      */
-    public List<MatchResult> findByCompetitionAndRoundOrderByTime(Competition competition, CompetitionRound round) {
-        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAsc(competition.getId(), round.getRoundNumber());
+    public List<MatchResult> findByCompetitionAndRoundOrderByTime(Competition competition, Integer roundNumber) {
+        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAsc(competition.getId(), roundNumber);
     }
     
     /**
      * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序（包含比赛编号作为第二排序条件）
      */
-    public List<MatchResult> findByCompetitionAndRoundOrderByTimeAndNumber(Competition competition, CompetitionRound round) {
-        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(competition.getId(), round.getRoundNumber());
+    public List<MatchResult> findByCompetitionAndRoundOrderByTimeAndNumber(Competition competition, Integer roundNumber) {
+        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(competition.getId(), roundNumber);
     }
     
     /**
      * 计算某一轮次下所有玩家的排名
      */
-    public List<PlayerRoundRanking> calculatePlayerRoundRankings(Competition competition, CompetitionRound round) {
+    public List<PlayerRoundRanking> calculatePlayerRoundRankings(Competition competition, Integer roundNumber) {
         // 获取该轮次下的所有比赛记录
-        List<MatchResult> matchResults = matchResultRepository.findByCompetitionAndRound(competition.getId(), round.getRoundNumber());
+        List<MatchResult> matchResults = matchResultRepository.findByCompetitionAndRound(competition.getId(), roundNumber);
         
         // 用于存储每个玩家的统计信息
         Map<Player, PlayerRoundRanking> playerRankings = new HashMap<>();
         
         // 遍历每场比赛，计算每个玩家的得分和排名
         for (MatchResult matchResult : matchResults) {
-            List<MatchResult.PlayerRank> matchRanks = matchResult.calculatePlayerRanks();
+            // 直接从数据库读取PT分数
+            addPlayerPtScore(playerRankings, matchResult.getEastPlayer(), matchResult.getEastPtScore(), 
+                            matchResult.getEastScore(), matchResult.getEastPenalty(), competition, roundNumber);
+            addPlayerPtScore(playerRankings, matchResult.getSouthPlayer(), matchResult.getSouthPtScore(), 
+                            matchResult.getSouthScore(), matchResult.getSouthPenalty(), competition, roundNumber);
+            addPlayerPtScore(playerRankings, matchResult.getWestPlayer(), matchResult.getWestPtScore(), 
+                            matchResult.getWestScore(), matchResult.getWestPenalty(), competition, roundNumber);
+            addPlayerPtScore(playerRankings, matchResult.getNorthPlayer(), matchResult.getNorthPtScore(), 
+                            matchResult.getNorthScore(), matchResult.getNorthPenalty(), competition, roundNumber);
             
+            // 计算排名用于统计顺位次数
+            List<MatchResult.PlayerRank> matchRanks = matchResult.calculatePlayerRanks();
             for (MatchResult.PlayerRank matchRank : matchRanks) {
                 Player player = matchRank.getPlayer();
-                
-                // 获取或创建玩家的排名统计对象
-                PlayerRoundRanking ranking = playerRankings.computeIfAbsent(player, 
-                    k -> new PlayerRoundRanking(player, competition, round));
-                
-                // 累加实际得分
-                ranking.addActualPoints(matchRank.getActualPoints());
-                
-                // 累加原始得分
-                ranking.addOriginalScore(matchRank.getScore());
-                
-                // 累加罚分
-                ranking.addPenalty(matchRank.getPenalty());
-                
-                // 统计顺位次数
-                ranking.addPositionCount(matchRank.getRank());
-                
-                // 增加比赛场数
-                ranking.incrementMatchCount();
+                PlayerRoundRanking ranking = playerRankings.get(player);
+                if (ranking != null) {
+                    // 统计顺位次数
+                    ranking.addPositionCount(matchRank.getRank());
+                }
             }
         }
         
@@ -130,36 +140,84 @@ public class MatchResultService {
     }
     
     /**
+     * 添加玩家PT分数到排名统计中
+     */
+    private void addPlayerPtScore(Map<Player, PlayerRoundRanking> playerRankings, Player player, 
+                                 Double ptScore, Integer originalScore, Integer penalty, 
+                                 Competition competition, Integer roundNumber) {
+        // 获取或创建玩家的排名统计对象
+        PlayerRoundRanking ranking = playerRankings.computeIfAbsent(player, 
+            k -> new PlayerRoundRanking(player, competition, roundNumber));
+        
+        // 累加PT分数
+        ranking.addActualPoints(ptScore);
+        
+        // 累加原始得分
+        ranking.addOriginalScore(originalScore);
+        
+        // 累加罚分
+        ranking.addPenalty(penalty);
+        
+        // 增加比赛场数
+        ranking.incrementMatchCount();
+    }
+    
+    /**
      * 计算某一轮次下指定玩家的排名统计
      */
-    public PlayerRoundRanking calculatePlayerRoundRanking(Competition competition, CompetitionRound round, Player player) {
+    public PlayerRoundRanking calculatePlayerRoundRanking(Competition competition, Integer roundNumber, Player player) {
         // 获取该玩家在该轮次下的所有比赛记录
         List<MatchResult> playerMatches = matchResultRepository.findByCompetitionAndRoundAndPlayer(
-                competition.getId(), round.getRoundNumber(), player.getId());
+                competition.getId(), roundNumber, player.getId());
         
-        PlayerRoundRanking ranking = new PlayerRoundRanking(player, competition, round);
+        PlayerRoundRanking ranking = new PlayerRoundRanking(player, competition, roundNumber);
         
         // 遍历该玩家的所有比赛记录
         for (MatchResult matchResult : playerMatches) {
-            // 找到该玩家在这场比赛中的排名信息
-            List<MatchResult.PlayerRank> matchRanks = matchResult.calculatePlayerRanks();
-            MatchResult.PlayerRank playerRank = matchRanks.stream()
-                    .filter(rank -> rank.getPlayer().getId().equals(player.getId()))
-                    .findFirst()
-                    .orElse(null);
+            // 直接从数据库读取该玩家的PT分数和其他信息
+            Double ptScore = null;
+            Integer originalScore = null;
+            Integer penalty = null;
             
-            if (playerRank != null) {
-                // 累加实际得分
-                ranking.addActualPoints(playerRank.getActualPoints());
+            if (matchResult.getEastPlayer().getId().equals(player.getId())) {
+                ptScore = matchResult.getEastPtScore();
+                originalScore = matchResult.getEastScore();
+                penalty = matchResult.getEastPenalty();
+            } else if (matchResult.getSouthPlayer().getId().equals(player.getId())) {
+                ptScore = matchResult.getSouthPtScore();
+                originalScore = matchResult.getSouthScore();
+                penalty = matchResult.getSouthPenalty();
+            } else if (matchResult.getWestPlayer().getId().equals(player.getId())) {
+                ptScore = matchResult.getWestPtScore();
+                originalScore = matchResult.getWestScore();
+                penalty = matchResult.getWestPenalty();
+            } else if (matchResult.getNorthPlayer().getId().equals(player.getId())) {
+                ptScore = matchResult.getNorthPtScore();
+                originalScore = matchResult.getNorthScore();
+                penalty = matchResult.getNorthPenalty();
+            }
+            
+            if (ptScore != null) {
+                // 累加PT分数
+                ranking.addActualPoints(ptScore);
                 
                 // 累加原始得分
-                ranking.addOriginalScore(playerRank.getScore());
+                ranking.addOriginalScore(originalScore);
                 
                 // 累加罚分
-                ranking.addPenalty(playerRank.getPenalty());
+                ranking.addPenalty(penalty);
                 
-                // 统计顺位次数
-                ranking.addPositionCount(playerRank.getRank());
+                // 计算排名用于统计顺位次数
+                List<MatchResult.PlayerRank> matchRanks = matchResult.calculatePlayerRanks();
+                MatchResult.PlayerRank playerRank = matchRanks.stream()
+                        .filter(rank -> rank.getPlayer().getId().equals(player.getId()))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (playerRank != null) {
+                    // 统计顺位次数
+                    ranking.addPositionCount(playerRank.getRank());
+                }
                 
                 // 增加比赛场数
                 ranking.incrementMatchCount();
@@ -190,16 +248,16 @@ public class MatchResultService {
     /**
      * 根据比赛、轮次和玩家查找该玩家参与的比赛成绩
      */
-    public List<MatchResult> findByCompetitionAndRoundAndPlayer(Competition competition, CompetitionRound round, Player player) {
+    public List<MatchResult> findByCompetitionAndRoundAndPlayer(Competition competition, Integer roundNumber, Player player) {
         return matchResultRepository.findByCompetitionAndRoundAndPlayer(
-                competition.getId(), round.getRoundNumber(), player.getId());
+                competition.getId(), roundNumber, player.getId());
     }
     
     /**
      * 根据比赛和轮次统计比赛场数
      */
-    public long countByCompetitionAndRound(Competition competition, CompetitionRound round) {
-        return matchResultRepository.countByCompetitionAndRound(competition.getId(), round.getRoundNumber());
+    public long countByCompetitionAndRound(Competition competition, Integer roundNumber) {
+        return matchResultRepository.countByCompetitionAndRound(competition.getId(), roundNumber);
     }
     
     /**
@@ -233,6 +291,9 @@ public class MatchResultService {
             throw new RuntimeException("四人成绩总和必须为100000分，当前总和: " + matchResult.getTotalScore());
         }
         
+        // 重新计算并设置PT分数
+        matchResult.calculateAndSetPtScores();
+        
         return matchResultRepository.save(matchResult);
     }
     
@@ -261,8 +322,8 @@ public class MatchResultService {
     /**
      * 获取下一场比赛编号
      */
-    public Integer getNextMatchNumber(Competition competition, CompetitionRound round) {
-        long currentCount = matchResultRepository.countByCompetitionAndRound(competition.getId(), round.getRoundNumber());
+    public Integer getNextMatchNumber(Competition competition, Integer roundNumber) {
+        long currentCount = matchResultRepository.countByCompetitionAndRound(competition.getId(), roundNumber);
         return (int) (currentCount + 1);
     }
     
@@ -289,6 +350,14 @@ public class MatchResultService {
     }
     
     /**
+     * 获取玩家在某轮次的PT分数总和
+     */
+    public Double getPlayerPtScoreSum(Long competitionId, Integer roundNumber, Long playerId) {
+        Double sum = matchResultRepository.getPlayerPtScoreSum(competitionId, roundNumber, playerId);
+        return sum != null ? sum : 0.0;
+    }
+    
+    /**
      * 内部类：比赛成绩详细信息
      */
     public static class MatchResultDetail {
@@ -310,7 +379,7 @@ public class MatchResultService {
     public static class PlayerRoundRanking implements Comparable<PlayerRoundRanking> {
         private Player player;
         private Competition competition;
-        private CompetitionRound round;
+        private Integer roundNumber;
         private Double totalActualPoints = 0.0;        // 实际得分总和
         private Integer totalOriginalScore = 0;        // 原始得分总和
         private Integer totalPenalty = 0;              // 罚分总和
@@ -322,10 +391,10 @@ public class MatchResultService {
         private Double averagePosition = 0.0;          // 平均顺位
         private Integer rank = 0;                      // 当前排名
         
-        public PlayerRoundRanking(Player player, Competition competition, CompetitionRound round) {
+        public PlayerRoundRanking(Player player, Competition competition, Integer roundNumber) {
             this.player = player;
             this.competition = competition;
-            this.round = round;
+            this.roundNumber = roundNumber;
         }
         
         /**
@@ -412,7 +481,7 @@ public class MatchResultService {
         // Getter方法
         public Player getPlayer() { return player; }
         public Competition getCompetition() { return competition; }
-        public CompetitionRound getRound() { return round; }
+        public Integer getRoundNumber() { return roundNumber; }
         public Double getTotalActualPoints() { return totalActualPoints; }
         public Integer getTotalOriginalScore() { return totalOriginalScore; }
         public Integer getTotalPenalty() { return totalPenalty; }
