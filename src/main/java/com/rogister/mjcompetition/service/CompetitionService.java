@@ -3,9 +3,11 @@ package com.rogister.mjcompetition.service;
 import com.rogister.mjcompetition.entity.Competition;
 import com.rogister.mjcompetition.entity.CompetitionRule;
 import com.rogister.mjcompetition.repository.CompetitionRepository;
+import com.rogister.mjcompetition.repository.CompetitionRuleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,15 +17,54 @@ public class CompetitionService {
     @Autowired
     private CompetitionRepository competitionRepository;
     
+    @Autowired
+    private CompetitionRuleRepository competitionRuleRepository;
+    
     /**
      * 创建新比赛
      */
     public Competition createCompetition(Competition competition) {
+        // 验证比赛名称
+        if (competition.getCompetitionName() == null || competition.getCompetitionName().trim().isEmpty()) {
+            throw new RuntimeException("比赛名称不能为空");
+        }
+        
+        // 验证比赛类型
+        if (competition.getCompetitionType() == null) {
+            throw new RuntimeException("比赛类型不能为空");
+        }
+        
+        // 验证比赛规则
+        if (competition.getRule() == null || competition.getRule().getId() == null) {
+            throw new RuntimeException("比赛规则不能为空");
+        }
+        
+        // 验证报名结束时间
+        if (competition.getRegistrationDeadline() == null) {
+            throw new RuntimeException("报名结束时间不能为空");
+        }
+        
+        if (competition.getRegistrationDeadline().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("报名结束时间不能早于当前时间");
+        }
+        
+        // 检查比赛名称是否已存在
         if (competitionRepository.existsByCompetitionName(competition.getCompetitionName())) {
             throw new RuntimeException("比赛名称已存在: " + competition.getCompetitionName());
         }
         
-        return competitionRepository.save(competition);
+        // 验证规则是否存在
+        CompetitionRule rule = competitionRuleRepository.findById(competition.getRule().getId())
+                .orElseThrow(() -> new RuntimeException("比赛规则不存在，ID: " + competition.getRule().getId()));
+        
+        // 设置完整的规则对象
+        competition.setRule(rule);
+        
+        // 保存比赛
+        Competition savedCompetition = competitionRepository.save(competition);
+        
+        // 重新查询以确保返回完整数据
+        return competitionRepository.findById(savedCompetition.getId()).orElse(savedCompetition);
     }
     
     /**

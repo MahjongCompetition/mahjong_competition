@@ -1,6 +1,198 @@
 # 麻将比赛管理系统
 
-这是一个基于Spring Boot的麻将比赛管理系统，使用MariaDB作为数据库。
+## 项目简介
+这是一个基于Spring Boot的麻将比赛管理系统，用于管理比赛、轮次、玩家和比赛记录。
+
+## 新增功能：查询某一轮次的比赛记录
+
+### API端点
+
+#### 1. 按时间排序查询轮次比赛记录
+```
+GET /api/match-results/round-records?competitionId={competitionId}&roundId={roundId}&includeMatchNumber={includeMatchNumber}
+```
+
+**参数说明：**
+- `competitionId`: 比赛ID（必填）
+- `roundId`: 轮次ID（必填）
+- `includeMatchNumber`: 是否包含比赛编号作为第二排序条件（可选，默认false）
+
+**功能：** 根据比赛和轮次查询比赛记录，按照比赛时间从早到晚排序。
+
+#### 2. 按时间和比赛编号排序查询轮次比赛记录
+```
+GET /api/match-results/round-records/detailed?competitionId={competitionId}&roundId={roundId}
+```
+
+**参数说明：**
+- `competitionId`: 比赛ID（必填）
+- `roundId`: 轮次ID（必填）
+
+**功能：** 根据比赛和轮次查询比赛记录，按照比赛时间从早到晚排序，时间相同时按比赛编号排序。
+
+#### 3. 获取格式化的轮次比赛记录
+```
+GET /api/match-results/round-records/formatted?competitionId={competitionId}&roundId={roundId}
+```
+
+**参数说明：**
+- `competitionId`: 比赛ID（必填）
+- `roundId`: 轮次ID（必填）
+
+**功能：** 根据比赛和轮次查询比赛记录，返回格式化的信息，按照比赛时间从早到晚排序。
+
+#### 4. 查询某一轮次下所有玩家的排名
+```
+GET /api/match-results/round-rankings?competitionId={competitionId}&roundId={roundId}
+```
+
+**参数说明：**
+- `competitionId`: 比赛ID（必填）
+- `roundId`: 轮次ID（必填）
+
+**功能：** 查询某一轮次下所有玩家的排名，包括得分总和、顺位次数统计和平均顺位。
+
+#### 5. 查询某一轮次下指定玩家的排名统计
+```
+GET /api/match-results/round-player-ranking?competitionId={competitionId}&roundId={roundId}&playerId={playerId}
+```
+
+**参数说明：**
+- `competitionId`: 比赛ID（必填）
+- `roundId`: 轮次ID（必填）
+- `playerId`: 玩家ID（必填）
+
+**功能：** 查询某一轮次下指定玩家的详细排名统计信息。
+
+#### 6. 查询某一轮次下所有玩家的排名（格式化输出）
+```
+GET /api/match-results/round-rankings/formatted?competitionId={competitionId}&roundId={roundId}
+```
+
+**参数说明：**
+- `competitionId`: 比赛ID（必填）
+- `roundId`: 轮次ID（必填）
+
+**功能：** 查询某一轮次下所有玩家的排名，返回格式化的信息，便于前端展示。
+
+### 使用示例
+
+#### 查询第一轮比赛记录（按时间排序）
+```bash
+curl "http://localhost:8080/api/match-results/round-records?competitionId=1&roundId=1"
+```
+
+#### 查询第一轮比赛记录（按时间和编号排序）
+```bash
+curl "http://localhost:8080/api/match-results/round-records/detailed?competitionId=1&roundId=1"
+```
+
+#### 查询第一轮比赛记录（格式化输出）
+```bash
+curl "http://localhost:8080/api/match-results/round-records/formatted?competitionId=1&roundId=1"
+```
+
+#### 查询第一轮玩家排名
+```bash
+curl "http://localhost:8080/api/match-results/round-rankings?competitionId=1&roundId=1"
+```
+
+#### 查询第一轮指定玩家排名
+```bash
+curl "http://localhost:8080/api/match-results/round-player-ranking?competitionId=1&roundId=1&playerId=1"
+```
+
+#### 查询第一轮玩家排名（格式化输出）
+```bash
+curl "http://localhost:8080/api/match-results/round-rankings/formatted?competitionId=1&roundId=1"
+```
+
+### 返回数据格式
+
+#### 标准格式（前两个端点）
+返回完整的`MatchResult`实体对象列表，包含所有比赛信息。
+
+#### 格式化格式（第三个端点）
+返回`RoundRecordDTO`对象列表，包含以下字段：
+- `id`: 比赛记录ID
+- `matchNumber`: 比赛编号
+- `matchName`: 比赛名称
+- `eastPlayerName`: 东家玩家姓名
+- `eastScore`: 东家得分
+- `eastPenalty`: 东家罚分
+- `southPlayerName`: 南家玩家姓名
+- `southScore`: 南家得分
+- `southPenalty`: 南家罚分
+- `westPlayerName`: 西家玩家姓名
+- `westScore`: 西家得分
+- `westPenalty`: 西家罚分
+- `northPlayerName`: 北家玩家姓名
+- `northScore`: 北家得分
+- `northPenalty`: 北家罚分
+- `matchTime`: 比赛时间
+- `remarks`: 比赛备注
+
+#### 玩家排名格式（第四、五、六个端点）
+返回`PlayerRoundRanking`或`PlayerRankingDTO`对象，包含以下字段：
+
+**PlayerRoundRanking（第四、五个端点）：**
+- `player`: 玩家对象
+- `competition`: 比赛对象
+- `round`: 轮次对象
+- `totalActualPoints`: 实际得分总和
+- `totalOriginalScore`: 原始得分总和
+- `totalPenalty`: 罚分总和
+- `matchCount`: 比赛场数
+- `firstPlaceCount`: 第一名次数
+- `secondPlaceCount`: 第二名次数
+- `thirdPlaceCount`: 第三名次数
+- `fourthPlaceCount`: 第四名次数
+- `averagePosition`: 平均顺位
+- `rank`: 当前排名
+
+**PlayerRankingDTO（第六个端点）：**
+- `rank`: 排名
+- `playerId`: 玩家ID
+- `playerName`: 玩家姓名
+- `mahjongId`: 麻将ID
+- `totalActualPoints`: 实际得分总和
+- `totalOriginalScore`: 原始得分总和
+- `totalPenalty`: 罚分总和
+- `matchCount`: 比赛场数
+- `firstPlaceCount`: 第一名次数
+- `secondPlaceCount`: 第二名次数
+- `thirdPlaceCount`: 第三名次数
+- `fourthPlaceCount`: 第四名次数
+- `averagePosition`: 平均顺位
+
+### 排序规则
+1. **主要排序**：按照比赛时间（`matchTime`）从早到晚排序
+2. **次要排序**：当使用`detailed`端点时，时间相同时按比赛编号（`matchNumber`）排序
+
+### 玩家排名排序规则
+1. **主要排序**：按照实际得分总和（`totalActualPoints`）从高到低排序
+2. **次要排序**：得分相同时，按照平均顺位（`averagePosition`）从低到高排序
+   - 平均顺位越低，排名越靠前
+   - 平均顺位计算公式：(第一名次数×1 + 第二名次数×2 + 第三名次数×3 + 第四名次数×4) ÷ 比赛场数
+
+### 注意事项
+- 确保传入的`competitionId`和`roundId`在数据库中存在
+- 如果比赛记录没有设置时间，将按照创建时间排序
+- 所有API都支持跨域访问（CORS）
+
+## 技术架构
+- Spring Boot 3.x
+- Spring Data JPA
+- H2/MySQL 数据库
+- Gradle 构建工具
+
+## 运行方式
+1. 确保已安装Java 17+
+2. 运行 `./gradlew bootRun`
+3. 访问 `http://localhost:8080`
+
+## 数据库配置
+在 `application.properties` 中配置数据库连接信息。
 
 ## 技术栈
 

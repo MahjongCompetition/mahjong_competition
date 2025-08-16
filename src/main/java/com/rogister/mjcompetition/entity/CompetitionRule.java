@@ -1,5 +1,6 @@
 package com.rogister.mjcompetition.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -36,22 +37,28 @@ public class CompetitionRule {
     private Integer fourthPlacePoints;
     
     @Column(name = "created_at", nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSS")
     private LocalDateTime createdAt;
     
     @Column(name = "updated_at")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSS")
     private LocalDateTime updatedAt;
     
     // 带参数的构造函数
     public CompetitionRule(String ruleName, Integer originPoints, Integer firstPlacePoints, Integer secondPlacePoints, 
                           Integer thirdPlacePoints, Integer fourthPlacePoints) {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
         this.ruleName = ruleName;
         this.originPoints = originPoints;
         this.firstPlacePoints = firstPlacePoints;
         this.secondPlacePoints = secondPlacePoints;
         this.thirdPlacePoints = thirdPlacePoints;
         this.fourthPlacePoints = fourthPlacePoints;
+    }
+    
+    @PrePersist
+    public void prePersist() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
     
     @PreUpdate

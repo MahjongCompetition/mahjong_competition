@@ -1,52 +1,39 @@
 package com.rogister.mjcompetition.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.rogister.mjcompetition.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @ControllerAdvice
 public class GlobalExceptionHandler {
     
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    
     /**
-     * 处理 HTTP 方法名无效的异常
+     * 处理运行时异常
      */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
-            IllegalArgumentException ex, WebRequest request) {
-        
-        logger.warn("收到无效的 HTTP 请求: {}", ex.getMessage());
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "Invalid Request");
-        response.put("message", "请求格式无效");
-        response.put("timestamp", System.currentTimeMillis());
-        
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiResponse<String>> handleRuntimeException(RuntimeException ex, WebRequest request) {
+        ApiResponse<String> response = ApiResponse.error(ex.getMessage());
         return ResponseEntity.badRequest().body(response);
     }
     
     /**
-     * 处理所有未捕获的异常
+     * 处理一般异常
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(
-            Exception ex, WebRequest request) {
-        
-        logger.error("未处理的异常: ", ex);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("error", "Internal Server Error");
-        response.put("message", "服务器内部错误");
-        response.put("timestamp", System.currentTimeMillis());
-        
+    public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex, WebRequest request) {
+        ApiResponse<String> response = ApiResponse.error("服务器内部错误");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+    
+    /**
+     * 处理非法参数异常
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<String>> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
+        ApiResponse<String> response = ApiResponse.error(ex.getMessage());
+        return ResponseEntity.badRequest().body(response);
     }
 }

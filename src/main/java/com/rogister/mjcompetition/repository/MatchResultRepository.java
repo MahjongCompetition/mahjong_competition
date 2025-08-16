@@ -5,6 +5,8 @@ import com.rogister.mjcompetition.entity.CompetitionRound;
 import com.rogister.mjcompetition.entity.MatchResult;
 import com.rogister.mjcompetition.entity.Player;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -44,4 +46,29 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, Long> 
      */
     List<MatchResult> findByCompetitionAndRoundAndEastPlayerOrSouthPlayerOrWestPlayerOrNorthPlayer(
             Competition competition, CompetitionRound round, Player eastPlayer, Player southPlayer, Player westPlayer, Player northPlayer);
+    
+    /**
+     * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序
+     */
+    List<MatchResult> findByCompetitionAndRoundOrderByMatchTimeAsc(Competition competition, CompetitionRound round);
+    
+    /**
+     * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序（包含比赛编号作为第二排序条件）
+     */
+    List<MatchResult> findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(Competition competition, CompetitionRound round);
+    
+    /**
+     * 根据比赛和轮次查找所有比赛记录，用于计算玩家排名
+     */
+    List<MatchResult> findByCompetitionAndRound(Competition competition, CompetitionRound round);
+    
+    /**
+     * 根据比赛、轮次和玩家查找该玩家参与的所有比赛记录
+     */
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition = :competition AND mr.round = :round " +
+           "AND (mr.eastPlayer = :player OR mr.southPlayer = :player OR mr.westPlayer = :player OR mr.northPlayer = :player)")
+    List<MatchResult> findByCompetitionAndRoundAndPlayer(
+            @Param("competition") Competition competition, 
+            @Param("round") CompetitionRound round, 
+            @Param("player") Player player);
 } 

@@ -1,0 +1,291 @@
+{
+	"info": {
+		"_postman_id": "mahjong-competition-api",
+		"name": "麻将比赛管理系统 API",
+		"description": "麻将比赛管理系统的完整API集合，包含新增的轮次比赛记录查询功能",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "比赛记录管理",
+			"item": [
+				{
+					"name": "查询轮次比赛记录（按时间排序）",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/round-records?competitionId=1&roundId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"round-records"
+							],
+							"query": [
+								{
+									"key": "competitionId",
+									"value": "1",
+									"description": "比赛ID"
+								},
+								{
+									"key": "roundId",
+									"value": "1",
+									"description": "轮次ID"
+								}
+							]
+						},
+						"description": "根据比赛和轮次查询比赛记录，按照比赛时间从早到晚排序"
+					},
+					"response": []
+				},
+				{
+					"name": "查询轮次比赛记录（按时间和编号排序）",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/round-records/detailed?competitionId=1&roundId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"round-records",
+								"detailed"
+							],
+							"query": [
+								{
+									"key": "competitionId",
+									"value": "1",
+									"description": "比赛ID"
+								},
+								{
+									"key": "roundId",
+									"value": "1",
+									"description": "轮次ID"
+								}
+							]
+						},
+						"description": "根据比赛和轮次查询比赛记录，按照比赛时间从早到晚排序，时间相同时按比赛编号排序"
+					},
+					"response": []
+				},
+				{
+					"name": "查询轮次比赛记录（格式化输出）",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/round-records/formatted?competitionId=1&roundId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"round-records",
+								"formatted"
+							],
+							"query": [
+								{
+									"key": "competitionId",
+									"value": "1",
+									"description": "比赛ID"
+								},
+								{
+									"key": "roundId",
+									"value": "1",
+									"description": "轮次ID"
+								}
+							]
+						},
+						"description": "根据比赛和轮次查询比赛记录，返回格式化的信息，按照比赛时间从早到晚排序"
+					},
+					"response": []
+				},
+				{
+					"name": "创建比赛记录",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"competition\": {\n    \"id\": 1\n  },\n  \"round\": {\n    \"id\": 1\n  },\n  \"matchNumber\": 1,\n  \"matchName\": \"第一场比赛\",\n  \"eastPlayer\": {\n    \"id\": 1\n  },\n  \"eastScore\": 25000,\n  \"southPlayer\": {\n    \"id\": 2\n  },\n  \"southScore\": 25000,\n  \"westPlayer\": {\n    \"id\": 3\n  },\n  \"westScore\": 25000,\n  \"northPlayer\": {\n    \"id\": 4\n  },\n  \"northScore\": 25000,\n  \"matchTime\": \"2024-01-01T09:00:00\",\n  \"remarks\": \"测试比赛\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results"
+							]
+						},
+						"description": "创建新的比赛记录"
+					},
+					"response": []
+				},
+				{
+					"name": "获取比赛记录详情",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/1/detail",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"1",
+								"detail"
+							]
+						},
+						"description": "获取比赛记录的详细排名和得分信息"
+					},
+					"response": []
+				},
+				{
+					"name": "查询轮次玩家排名",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/round-rankings?competitionId=1&roundId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"round-rankings"
+							],
+							"query": [
+								{
+									"key": "competitionId",
+									"value": "1",
+									"description": "比赛ID"
+								},
+								{
+									"key": "roundId",
+									"value": "1",
+									"description": "轮次ID"
+								}
+							]
+						},
+						"description": "查询某一轮次下所有玩家的排名，包括得分总和、顺位次数统计和平均顺位"
+					},
+					"response": []
+				},
+				{
+					"name": "查询轮次指定玩家排名",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/round-player-ranking?competitionId=1&roundId=1&playerId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"round-player-ranking"
+							],
+							"query": [
+								{
+									"key": "competitionId",
+									"value": "1",
+									"description": "比赛ID"
+								},
+								{
+									"key": "roundId",
+									"value": "1",
+									"description": "轮次ID"
+								},
+								{
+									"key": "playerId",
+									"value": "1",
+									"description": "玩家ID"
+								}
+							]
+						},
+						"description": "查询某一轮次下指定玩家的详细排名统计信息"
+					},
+					"response": []
+				},
+				{
+					"name": "查询轮次玩家排名（格式化输出）",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/match-results/round-rankings/formatted?competitionId=1&roundId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"match-results",
+								"round-rankings",
+								"formatted"
+							],
+							"query": [
+								{
+									"key": "competitionId",
+									"value": "1",
+									"description": "比赛ID"
+								},
+								{
+									"key": "roundId",
+									"value": "1",
+									"description": "轮次ID"
+								}
+							]
+						},
+						"description": "查询某一轮次下所有玩家的排名，返回格式化的信息，便于前端展示"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
