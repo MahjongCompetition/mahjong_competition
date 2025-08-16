@@ -27,8 +27,16 @@ public class AdvancementController {
         try {
             Long competitionId = Long.valueOf(request.get("competitionId").toString());
             @SuppressWarnings("unchecked")
-            List<Long> playerIds = (List<Long>) request.get("playerIds");
-            Integer targetRound = Integer.valueOf(request.get("targetRound").toString());
+            List<Object> playerIdsObj = (List<Object>) request.get("playerIds");
+            List<Long> playerIds = playerIdsObj.stream()
+                    .map(id -> Long.valueOf(id.toString()))
+                    .toList();
+            // 支持 targetRound 或 roundNumber 字段名
+            Object targetRoundObj = request.get("targetRound");
+            if (targetRoundObj == null) {
+                targetRoundObj = request.get("roundNumber");
+            }
+            Integer targetRound = Integer.valueOf(targetRoundObj.toString());
             Integer initialScore = Integer.valueOf(request.get("initialScore").toString());
             
             if (competitionId == null || playerIds == null || targetRound == null || initialScore == null) {
@@ -62,8 +70,16 @@ public class AdvancementController {
         try {
             Long competitionId = Long.valueOf(request.get("competitionId").toString());
             @SuppressWarnings("unchecked")
-            List<Long> teamIds = (List<Long>) request.get("teamIds");
-            Integer targetRound = Integer.valueOf(request.get("targetRound").toString());
+            List<Object> teamIdsObj = (List<Object>) request.get("teamIds");
+            List<Long> teamIds = teamIdsObj.stream()
+                    .map(id -> Long.valueOf(id.toString()))
+                    .toList();
+            // 支持 targetRound 或 roundNumber 字段名
+            Object targetRoundObj = request.get("targetRound");
+            if (targetRoundObj == null) {
+                targetRoundObj = request.get("roundNumber");
+            }
+            Integer targetRound = Integer.valueOf(targetRoundObj.toString());
             Integer initialScore = Integer.valueOf(request.get("initialScore").toString());
             
             if (competitionId == null || teamIds == null || targetRound == null || initialScore == null) {

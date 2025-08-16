@@ -30,6 +30,9 @@ public class CompetitionStatusService {
     @Autowired
     private PlayerRepository playerRepository;
     
+    @Autowired
+    private MatchResultService matchResultService;
+    
     /**
      * 获取比赛当前最高轮次
      */
@@ -90,7 +93,7 @@ public class CompetitionStatusService {
         
         return roundStatuses.stream()
                 .map(this::buildPlayerStatusInfo)
-                .sorted(Comparator.comparing(CompetitionStatusResponse.PlayerStatusInfo::getTotalScore).reversed())
+                .sorted(Comparator.comparing(CompetitionStatusResponse.PlayerStatusInfo::getCurrentRoundScore).reversed())
                 .collect(Collectors.toList());
     }
     
@@ -138,10 +141,10 @@ public class CompetitionStatusService {
              }
          }
          
-         // 按累计得分从高到低排序
-         return allPlayerStatuses.stream()
-                 .sorted(Comparator.comparing(CompetitionStatusResponse.PlayerStatusInfo::getTotalScore).reversed())
-                 .collect(Collectors.toList());
+                 // 按当前轮次得分从高到低排序
+        return allPlayerStatuses.stream()
+                .sorted(Comparator.comparing(CompetitionStatusResponse.PlayerStatusInfo::getCurrentRoundScore).reversed())
+                .collect(Collectors.toList());
      }
     
     /**
@@ -157,10 +160,17 @@ public class CompetitionStatusService {
         info.setInitialScore(roundStatus.getInitialScore());
         info.setStatus(roundStatus.getStatus().toString());
         
-        // 计算当轮得分（当前得分 - 初始得分）
-        int currentRoundScore = roundStatus.getCurrentScore() - roundStatus.getInitialScore();
+        // 使用PT分数计算当轮得分
+        Double currentRoundPtScore = matchResultService.getPlayerPtScoreSum(
+                roundStatus.getCompetition().getId(), 
+                roundStatus.getRoundNumber(), 
+                player.getId());
+        
+        // 将PT分数转换为整数显示，乘以适当的倍数以便显示
+        int currentRoundScore = (int) Math.round(currentRoundPtScore);
         info.setCurrentRoundScore(currentRoundScore);
-        info.setTotalScore(roundStatus.getCurrentScore());
+        
+        // 个人不需要totalScore，不设置此字段
         
         // 获取比赛统计数据
         Map<String, Object> stats = getPlayerMatchStats(roundStatus.getCompetition().getId(), player.getId());
@@ -187,10 +197,21 @@ public class CompetitionStatusService {
         info.setInitialScore(roundStatus.getInitialScore());
         info.setStatus(roundStatus.getStatus().toString());
         
-        // 计算团队当轮得分和累计得分
-        int currentRoundScore = roundStatus.getCurrentScore() - roundStatus.getInitialScore();
+        // 计算团队当轮PT得分总和
+        List<TeamMember> teamMembers = teamMemberRepository.findByTeamIdAndIsActiveTrue(team.getId());
+        double teamCurrentRoundPtScore = 0.0;
+        
+        for (TeamMember member : teamMembers) {
+            Double playerPtScore = matchResultService.getPlayerPtScoreSum(
+                    roundStatus.getCompetition().getId(), 
+                    roundStatus.getRoundNumber(), 
+                    member.getPlayer().getId());
+            teamCurrentRoundPtScore += playerPtScore;
+        }
+        
+        int currentRoundScore = (int) Math.round(teamCurrentRoundPtScore);
         info.setCurrentRoundScore(currentRoundScore);
-        info.setTotalScore(roundStatus.getCurrentScore());
+        info.setTotalScore(currentRoundScore);
         
         // 获取团队比赛统计数据
         Map<String, Object> teamStats = getTeamMatchStats(roundStatus.getCompetition().getId(), team.getId());
@@ -347,9 +368,11 @@ public class CompetitionStatusService {
                     score.setPlayerName(player.getNickname());
                     score.setUsername(player.getUsername());
                     
-                                         // 获取个人得分（即对团队的贡献分）
-                     Integer individualScore = getPlayerIndividualScore(competitionId, player.getId());
-                     score.setIndividualScore(individualScore);
+                    // 获取个人PT得分（即对团队的贡献分）
+                    // 这里需要获取该玩家在该比赛的所有轮次的PT分数总和
+                    // 暂时使用当前逻辑，后续可以改进为多轮次累计
+                    Integer individualScore = getPlayerIndividualScore(competitionId, player.getId());
+                    score.setIndividualScore(individualScore);
                     
                     return score;
                 })
