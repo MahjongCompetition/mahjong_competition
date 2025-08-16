@@ -22,18 +22,36 @@ public class Competition {
     @Column(name = "competition_name", nullable = false, length = 200, unique = true)
     private String competitionName;
     
+    @Column(name = "description", length = 500)
+    private String description;
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "competition_type", nullable = false)
     private CompetitionType competitionType;
+    
+    @Column(name = "max_participants")
+    private Integer maxParticipants;
     
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.REFRESH)
     @JoinColumn(name = "rule_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private CompetitionRule rule;
     
+    @Column(name = "registration_start_time")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime registrationStartTime;
+    
     @Column(name = "registration_deadline", nullable = false)
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime registrationDeadline;
+    
+    @Column(name = "start_time")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime startTime;
+    
+    @Column(name = "end_time")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime endTime;
     
     @Column(name = "created_at", nullable = false)
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSS")

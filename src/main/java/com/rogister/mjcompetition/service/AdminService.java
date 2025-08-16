@@ -194,4 +194,45 @@ public class AdminService {
             throw new RuntimeException("管理员不存在");
         }
     }
+    
+    /**
+     * 初始化超级管理员账号
+     */
+    public Admin initializeSuperAdmin(String username, String password, String email, String name) {
+        // 检查是否已存在超级管理员
+        List<Admin> superAdmins = adminRepository.findByRole("SUPER_ADMIN");
+        if (!superAdmins.isEmpty()) {
+            throw new RuntimeException("超级管理员已存在");
+        }
+        
+        // 检查用户名是否已存在
+        if (adminRepository.existsByUsername(username)) {
+            throw new RuntimeException("用户名已存在");
+        }
+        
+        // 检查邮箱是否已存在
+        if (adminRepository.existsByEmail(email)) {
+            throw new RuntimeException("邮箱已存在");
+        }
+        
+        Admin superAdmin = new Admin();
+        superAdmin.setUsername(username);
+        superAdmin.setPassword(passwordEncoder.encode(password));
+        superAdmin.setEmail(email);
+        superAdmin.setName(name != null ? name : "超级管理员");
+        superAdmin.setRole("SUPER_ADMIN");
+        superAdmin.setIsActive(true);
+        superAdmin.setCreatedAt(LocalDateTime.now());
+        superAdmin.setUpdatedAt(LocalDateTime.now());
+        
+        return adminRepository.save(superAdmin);
+    }
+    
+    /**
+     * 检查是否存在超级管理员
+     */
+    public boolean hasSuperAdmin() {
+        List<Admin> superAdmins = adminRepository.findByRole("SUPER_ADMIN");
+        return !superAdmins.isEmpty();
+    }
 }

@@ -3,11 +3,14 @@ package com.rogister.mjcompetition.service;
 import com.rogister.mjcompetition.entity.Competition;
 import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.entity.PlayerCompetitionRegistration;
+import com.rogister.mjcompetition.entity.PlayerRoundStatus;
 import com.rogister.mjcompetition.repository.CompetitionRepository;
 import com.rogister.mjcompetition.repository.PlayerCompetitionRegistrationRepository;
 import com.rogister.mjcompetition.repository.PlayerRepository;
+import com.rogister.mjcompetition.repository.PlayerRoundStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,9 +28,13 @@ public class PlayerCompetitionRegistrationService {
     @Autowired
     private CompetitionRepository competitionRepository;
     
+    @Autowired
+    private PlayerRoundStatusRepository playerRoundStatusRepository;
+    
     /**
      * 玩家报名比赛
      */
+    @Transactional
     public PlayerCompetitionRegistration registerForCompetition(Long playerId, Long competitionId) {
         // 验证玩家是否存在
         Player player = playerRepository.findById(playerId)
@@ -49,13 +56,19 @@ public class PlayerCompetitionRegistrationService {
         
         // 创建报名记录
         PlayerCompetitionRegistration registration = new PlayerCompetitionRegistration(player, competition);
+        PlayerCompetitionRegistration savedRegistration = registrationRepository.save(registration);
         
-        return registrationRepository.save(registration);
+        // 自动创建第一轮次状态，初始得分为0
+        PlayerRoundStatus firstRoundStatus = new PlayerRoundStatus(player, competition, 1, 0);
+        playerRoundStatusRepository.save(firstRoundStatus);
+        
+        return savedRegistration;
     }
     
     /**
      * 取消报名
      */
+    @Transactional
     public void cancelRegistration(Long playerId, Long competitionId) {
         Player player = playerRepository.findById(playerId)
                 .orElseThrow(() -> new RuntimeException("玩家不存在，ID: " + playerId));
@@ -71,6 +84,13 @@ public class PlayerCompetitionRegistrationService {
             throw new RuntimeException("报名已结束，无法取消报名");
         }
         
+        // 删除该玩家在此比赛中的所有轮次状态
+        List<PlayerRoundStatus> playerRoundStatuses = playerRoundStatusRepository.findByPlayerIdAndCompetitionId(playerId, competitionId);
+        if (!playerRoundStatuses.isEmpty()) {
+            playerRoundStatusRepository.deleteAll(playerRoundStatuses);
+        }
+        
+        // 设置报名状态为已取消
         registration.setStatus(PlayerCompetitionRegistration.RegistrationStatus.CANCELLED);
         registrationRepository.save(registration);
     }

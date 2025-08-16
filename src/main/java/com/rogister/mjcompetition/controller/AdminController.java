@@ -192,4 +192,43 @@ public class AdminController {
             return ResponseEntity.ok(ApiResponse.error("修改密码失败"));
         }
     }
+    
+    /**
+     * 初始化超级管理员账号（仅当系统中不存在超级管理员时可用）
+     */
+    @PostMapping("/initialize-super-admin")
+    public ResponseEntity<ApiResponse<Admin>> initializeSuperAdmin(@RequestBody Map<String, String> request) {
+        try {
+            String username = request.get("username");
+            String password = request.get("password");
+            String email = request.get("email");
+            String name = request.get("name");
+            
+            if (username == null || password == null || email == null) {
+                return ResponseEntity.ok(ApiResponse.error("用户名、密码和邮箱不能为空"));
+            }
+            
+            Admin superAdmin = adminService.initializeSuperAdmin(username, password, email, name);
+            // 清除密码信息
+            superAdmin.setPassword(null);
+            return ResponseEntity.ok(ApiResponse.success("超级管理员初始化成功", superAdmin));
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("初始化超级管理员失败"));
+        }
+    }
+    
+    /**
+     * 检查是否存在超级管理员
+     */
+    @GetMapping("/has-super-admin")
+    public ResponseEntity<ApiResponse<Boolean>> hasSuperAdmin() {
+        try {
+            boolean hasSuperAdmin = adminService.hasSuperAdmin();
+            return ResponseEntity.ok(ApiResponse.success("查询成功", hasSuperAdmin));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("查询失败"));
+        }
+    }
 }

@@ -2,6 +2,7 @@ package com.rogister.mjcompetition.controller;
 
 import com.rogister.mjcompetition.dto.ApiResponse;
 import com.rogister.mjcompetition.dto.CompetitionRegistrationRequest;
+import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.entity.PlayerCompetitionRegistration;
 import com.rogister.mjcompetition.service.PlayerCompetitionRegistrationService;
 import com.rogister.mjcompetition.service.PlayerService;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/player-registrations")
+@RequestMapping("/api/player-competition-registrations")
 @CrossOrigin(origins = "*")
 public class PlayerCompetitionRegistrationController {
     
@@ -39,12 +40,11 @@ public class PlayerCompetitionRegistrationController {
                 return ResponseEntity.ok(ApiResponse.error("无效的token"));
             }
             
-            // 获取玩家ID（这里需要根据用户名查找玩家ID）
-            // 为了简化，我们假设token中包含足够的信息
-            // 在实际应用中，你可能需要从token中提取更多信息
+            // 根据用户名获取玩家信息
+            Player player = playerService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("玩家不存在，用户名: " + username));
             
-            // 这里需要根据实际情况调整
-            Long playerId = 1L; // 临时硬编码，实际应该从token或数据库中获取
+            Long playerId = player.getId();
             
             PlayerCompetitionRegistration registration = registrationService.registerForCompetition(playerId, request.getCompetitionId());
             return ResponseEntity.ok(ApiResponse.success("报名成功", registration));
@@ -69,7 +69,11 @@ public class PlayerCompetitionRegistrationController {
                 return ResponseEntity.ok(ApiResponse.error("无效的token"));
             }
             
-            Long playerId = 1L; // 临时硬编码
+            // 根据用户名获取玩家信息
+            Player player = playerService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("玩家不存在，用户名: " + username));
+            
+            Long playerId = player.getId();
             
             registrationService.cancelRegistration(playerId, request.getCompetitionId());
             return ResponseEntity.ok(ApiResponse.success("取消报名成功"));

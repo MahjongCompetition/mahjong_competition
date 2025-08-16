@@ -3,10 +3,12 @@ package com.rogister.mjcompetition.controller;
 import com.rogister.mjcompetition.dto.ApiResponse;
 import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.service.PlayerService;
+import com.rogister.mjcompetition.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +19,9 @@ public class PlayerController {
     
     @Autowired
     private PlayerService playerService;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
     
     /**
      * 玩家注册账户
@@ -52,6 +57,43 @@ public class PlayerController {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.error("登录失败"));
+        }
+    }
+    
+    /**
+     * 获取当前登录玩家的信息
+     */
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<Player>> getPlayerProfile(HttpServletRequest request) {
+        try {
+            // 从请求头中获取JWT token
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.ok(ApiResponse.error("未提供有效的认证token"));
+            }
+            
+            String token = authHeader.substring(7);
+            
+            // 先从token中提取用户名
+            String username;
+            try {
+                username = jwtUtil.extractUsername(token);
+            } catch (Exception e) {
+                return ResponseEntity.ok(ApiResponse.error("Token格式无效"));
+            }
+            
+            // 验证token和用户名
+            if (!jwtUtil.validateToken(token, username)) {
+                return ResponseEntity.ok(ApiResponse.error("Token无效或已过期"));
+            }
+            
+            // 根据用户名查找玩家信息
+            return playerService.findByUsername(username)
+                    .map(player -> ResponseEntity.ok(ApiResponse.success(player)))
+                    .orElse(ResponseEntity.ok(ApiResponse.error("玩家不存在")));
+                    
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("获取玩家信息失败: " + e.getMessage()));
         }
     }
     

@@ -1,7 +1,9 @@
 package com.rogister.mjcompetition.controller;
 
 import com.rogister.mjcompetition.dto.ApiResponse;
+import com.rogister.mjcompetition.dto.CompetitionCreateRequest;
 import com.rogister.mjcompetition.entity.Competition;
+import com.rogister.mjcompetition.entity.CompetitionRule;
 import com.rogister.mjcompetition.service.CompetitionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +22,43 @@ public class CompetitionController {
     /**
      * 创建新比赛
      */
-    @PostMapping
-    public ResponseEntity<ApiResponse<Competition>> createCompetition(@RequestBody Competition competition) {
+    @PostMapping("/create")
+    public ResponseEntity<ApiResponse<Competition>> createCompetition(@RequestBody CompetitionCreateRequest request) {
         try {
+            // 验证请求参数
+            if (request.getName() == null || request.getName().trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("比赛名称不能为空"));
+            }
+            if (request.getType() == null || request.getType().trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("比赛类型不能为空"));
+            }
+            if (request.getRuleId() == null) {
+                return ResponseEntity.ok(ApiResponse.error("比赛规则ID不能为空"));
+            }
+            if (request.getRegistrationEndTime() == null) {
+                return ResponseEntity.ok(ApiResponse.error("报名结束时间不能为空"));
+            }
+            
+            // 将DTO转换为实体
+            Competition competition = new Competition();
+            competition.setCompetitionName(request.getName().trim());
+            competition.setDescription(request.getDescription());
+            competition.setCompetitionType(Competition.CompetitionType.valueOf(request.getType().toUpperCase()));
+            competition.setMaxParticipants(request.getMaxParticipants());
+            competition.setRegistrationStartTime(request.getRegistrationStartTime());
+            competition.setRegistrationDeadline(request.getRegistrationEndTime());
+            competition.setStartTime(request.getStartTime());
+            competition.setEndTime(request.getEndTime());
+            
+            // 设置规则
+            CompetitionRule rule = new CompetitionRule();
+            rule.setId(request.getRuleId());
+            competition.setRule(rule);
+            
             Competition createdCompetition = competitionService.createCompetition(competition);
             return ResponseEntity.ok(ApiResponse.success("创建比赛成功", createdCompetition));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(ApiResponse.error("比赛类型无效，请使用 INDIVIDUAL 或 TEAM"));
         } catch (RuntimeException e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
