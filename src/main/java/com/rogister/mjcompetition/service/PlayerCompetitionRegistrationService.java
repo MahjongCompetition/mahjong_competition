@@ -43,7 +43,7 @@ public class PlayerCompetitionRegistrationService {
         }
         
         // 检查是否已经报名
-        if (registrationRepository.existsByPlayerAndCompetition(player, competition)) {
+        if (registrationRepository.existsByPlayerIdAndCompetitionId(player.getId(), competition.getId())) {
             throw new RuntimeException("您已经报名了这场比赛");
         }
         
@@ -63,7 +63,7 @@ public class PlayerCompetitionRegistrationService {
         Competition competition = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
         
-        PlayerCompetitionRegistration registration = registrationRepository.findByPlayerAndCompetition(player, competition)
+        PlayerCompetitionRegistration registration = registrationRepository.findByPlayerIdAndCompetitionId(player.getId(), competition.getId())
                 .orElseThrow(() -> new RuntimeException("未找到报名记录"));
         
         // 检查报名是否已结束
@@ -82,7 +82,7 @@ public class PlayerCompetitionRegistrationService {
         Player player = playerRepository.findById(playerId)
                 .orElseThrow(() -> new RuntimeException("玩家不存在，ID: " + playerId));
         
-        return registrationRepository.findByPlayer(player);
+        return registrationRepository.findByPlayerId(player.getId());
     }
     
     /**
@@ -92,7 +92,7 @@ public class PlayerCompetitionRegistrationService {
         Competition competition = competitionRepository.findById(competitionId)
                 .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + competitionId));
         
-        return registrationRepository.findByCompetition(competition);
+        return registrationRepository.findByCompetitionId(competition.getId());
     }
     
     /**
@@ -106,6 +106,6 @@ public class PlayerCompetitionRegistrationService {
             return false;
         }
         
-        return registrationRepository.existsByPlayerAndCompetition(player, competition);
+        return registrationRepository.existsByPlayerIdAndCompetitionId(player.getId(), competition.getId());
     }
 }

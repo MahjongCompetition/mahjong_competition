@@ -7,39 +7,33 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "players")
+@Table(name = "teams")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Player {
+public class Team {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "username", nullable = false, unique = true, length = 50)
-    private String username;
+    @Column(name = "team_name", nullable = false, length = 100)
+    private String teamName;
     
-    @Column(name = "password", nullable = false, length = 255)
-    private String password;
+    @Column(name = "team_code", nullable = false, unique = true, length = 20)
+    private String teamCode; // 团队编号，用于队员加入
     
-    @Column(name = "qq", nullable = false, unique = true, length = 20)
-    private String qq;
+    @Column(name = "captain_id", nullable = false)
+    private Long captainId; // 队长ID
     
-    @Column(name = "nickname", nullable = false, length = 100)
-    private String nickname;
+    @Column(name = "max_members", nullable = false)
+    private Integer maxMembers; // 最大成员数
     
-    @Column(name = "mahjong_id", nullable = false, unique = true, length = 50)
-    private String mahjongId;
-    
-    @Column(name = "mahjong_nickname", nullable = false, length = 100)
-    private String mahjongNickname;
+    @Column(name = "current_members", nullable = false)
+    private Integer currentMembers; // 当前成员数
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
-    
-    @Column(name = "last_login_time")
-    private LocalDateTime lastLoginTime;
     
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -48,16 +42,15 @@ public class Player {
     private LocalDateTime updatedAt;
     
     // 带参数的构造函数
-    public Player(String username, String password, String qq, String nickname, String mahjongId, String mahjongNickname) {
+    public Team(String teamName, String teamCode, Long captainId, Integer maxMembers) {
+        this.teamName = teamName;
+        this.teamCode = teamCode;
+        this.captainId = captainId;
+        this.maxMembers = maxMembers;
+        this.currentMembers = 1; // 创建时只有队长一人
+        this.isActive = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.isActive = true;
-        this.username = username;
-        this.password = password;
-        this.qq = qq;
-        this.nickname = nickname;
-        this.mahjongId = mahjongId;
-        this.mahjongNickname = mahjongNickname;
     }
     
     @PrePersist
@@ -71,10 +64,13 @@ public class Player {
         if (this.isActive == null) {
             this.isActive = true;
         }
+        if (this.currentMembers == null) {
+            this.currentMembers = 1;
+        }
     }
     
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-} 
+}

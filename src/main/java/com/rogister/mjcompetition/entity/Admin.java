@@ -7,11 +7,11 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "players")
+@Table(name = "admins")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Player {
+public class Admin {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,17 +23,14 @@ public class Player {
     @Column(name = "password", nullable = false, length = 255)
     private String password;
     
-    @Column(name = "qq", nullable = false, unique = true, length = 20)
-    private String qq;
+    @Column(name = "email", nullable = false, unique = true, length = 100)
+    private String email;
     
-    @Column(name = "nickname", nullable = false, length = 100)
-    private String nickname;
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
     
-    @Column(name = "mahjong_id", nullable = false, unique = true, length = 50)
-    private String mahjongId;
-    
-    @Column(name = "mahjong_nickname", nullable = false, length = 100)
-    private String mahjongNickname;
+    @Column(name = "role", nullable = false, length = 50)
+    private String role; // SUPER_ADMIN, ADMIN
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
@@ -48,33 +45,25 @@ public class Player {
     private LocalDateTime updatedAt;
     
     // 带参数的构造函数
-    public Player(String username, String password, String qq, String nickname, String mahjongId, String mahjongNickname) {
+    public Admin(String username, String password, String email, String name, String role) {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.isActive = true;
         this.username = username;
         this.password = password;
-        this.qq = qq;
-        this.nickname = nickname;
-        this.mahjongId = mahjongId;
-        this.mahjongNickname = mahjongNickname;
+        this.email = email;
+        this.name = name;
+        this.role = role;
     }
     
     @PrePersist
     public void prePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-        if (this.updatedAt == null) {
-            this.updatedAt = LocalDateTime.now();
-        }
-        if (this.isActive == null) {
-            this.isActive = true;
-        }
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
     
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-} 
+}

@@ -27,6 +27,16 @@ public class JwtUtil {
     }
     
     /**
+     * 生成包含角色信息的JWT token
+     */
+    public String generateTokenWithRole(String username, String userType, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userType", userType); // PLAYER 或 ADMIN
+        claims.put("role", role); // 具体角色
+        return createToken(claims, username);
+    }
+    
+    /**
      * 创建token
      */
     private String createToken(Map<String, Object> claims, String subject) {
@@ -52,6 +62,20 @@ public class JwtUtil {
      */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+    
+    /**
+     * 从token中提取用户类型
+     */
+    public String extractUserType(String token) {
+        return extractClaim(token, claims -> claims.get("userType", String.class));
+    }
+    
+    /**
+     * 从token中提取角色
+     */
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
     
     /**

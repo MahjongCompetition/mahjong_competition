@@ -1,10 +1,11 @@
 package com.rogister.mjcompetition.repository;
 
 import com.rogister.mjcompetition.entity.Competition;
-import com.rogister.mjcompetition.entity.CompetitionRound;
 import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.entity.PlayerRoundStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,32 +15,43 @@ import java.util.Optional;
 public interface PlayerRoundStatusRepository extends JpaRepository<PlayerRoundStatus, Long> {
     
     /**
-     * 根据比赛、轮次和玩家查找状态
+     * 根据比赛ID和轮次号查找所有选手状态
      */
-    Optional<PlayerRoundStatus> findByCompetitionAndRoundAndPlayer(Competition competition, CompetitionRound round, Player player);
+    List<PlayerRoundStatus> findByCompetitionIdAndRoundNumber(Long competitionId, Integer roundNumber);
     
     /**
-     * 根据比赛和轮次查找所有选手状态
+     * 根据玩家和比赛查找指定轮次的状态
      */
-    List<PlayerRoundStatus> findByCompetitionAndRoundOrderByCurrentScoreDesc(Competition competition, CompetitionRound round);
+    Optional<PlayerRoundStatus> findByPlayerAndCompetitionAndRoundNumber(Player player, Competition competition, Integer roundNumber);
     
     /**
-     * 根据比赛和轮次查找晋级的选手
+     * 根据比赛ID查找最大轮次号
      */
-    List<PlayerRoundStatus> findByCompetitionAndRoundAndIsAdvancedTrueOrderByCurrentScoreDesc(Competition competition, CompetitionRound round);
+    @Query("SELECT MAX(prs.roundNumber) FROM PlayerRoundStatus prs WHERE prs.competition.id = :competitionId")
+    Integer findMaxRoundNumberByCompetitionId(@Param("competitionId") Long competitionId);
     
     /**
-     * 根据比赛和玩家查找所有轮次状态
+     * 根据比赛ID查找所有选手轮次状态
      */
-    List<PlayerRoundStatus> findByCompetitionAndPlayerOrderByRoundRoundNumber(Competition competition, Player player);
+    List<PlayerRoundStatus> findByCompetitionId(Long competitionId);
     
     /**
-     * 根据比赛查找当前轮次的所有选手状态
+     * 根据玩家ID查找所有轮次状态
      */
-    List<PlayerRoundStatus> findByCompetitionAndRoundIsActiveTrueOrderByCurrentScoreDesc(Competition competition);
+    List<PlayerRoundStatus> findByPlayerId(Long playerId);
     
     /**
-     * 检查玩家在指定轮次是否已存在状态记录
+     * 根据比赛ID和轮次号查找活跃状态的选手轮次状态
      */
-    boolean existsByCompetitionAndRoundAndPlayer(Competition competition, CompetitionRound round, Player player);
+    List<PlayerRoundStatus> findByCompetitionIdAndRoundNumberAndStatus(Long competitionId, Integer roundNumber, PlayerRoundStatus.RoundStatus status);
+    
+    /**
+     * 根据玩家ID、比赛ID和轮次号查找选手状态
+     */
+    Optional<PlayerRoundStatus> findByPlayerIdAndCompetitionIdAndRoundNumber(Long playerId, Long competitionId, Integer roundNumber);
+    
+    /**
+     * 根据玩家ID和比赛ID查找所有轮次状态
+     */
+    List<PlayerRoundStatus> findByPlayerIdAndCompetitionId(Long playerId, Long competitionId);
 } 

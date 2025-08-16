@@ -14,16 +14,16 @@ import java.util.Optional;
 public interface PlayerCompetitionRegistrationRepository extends JpaRepository<PlayerCompetitionRegistration, Long> {
     
     /**
-     * 根据玩家查找报名记录
+     * 根据玩家ID查找报名记录
      */
     @EntityGraph(attributePaths = {"competition", "competition.rule"})
-    List<PlayerCompetitionRegistration> findByPlayer(Player player);
+    List<PlayerCompetitionRegistration> findByPlayerId(Long playerId);
     
     /**
-     * 根据比赛查找报名记录
+     * 根据比赛ID查找报名记录
      */
     @EntityGraph(attributePaths = {"player"})
-    List<PlayerCompetitionRegistration> findByCompetition(Competition competition);
+    List<PlayerCompetitionRegistration> findByCompetitionId(Long competitionId);
     
     /**
      * 根据玩家和比赛查找报名记录
@@ -31,12 +31,32 @@ public interface PlayerCompetitionRegistrationRepository extends JpaRepository<P
     Optional<PlayerCompetitionRegistration> findByPlayerAndCompetition(Player player, Competition competition);
     
     /**
+     * 根据玩家ID和比赛ID查找报名记录
+     */
+    Optional<PlayerCompetitionRegistration> findByPlayerIdAndCompetitionId(Long playerId, Long competitionId);
+    
+    /**
      * 检查玩家是否已报名某场比赛
      */
     boolean existsByPlayerAndCompetition(Player player, Competition competition);
     
     /**
+     * 根据玩家ID和比赛ID检查玩家是否已报名
+     */
+    boolean existsByPlayerIdAndCompetitionId(Long playerId, Long competitionId);
+    
+    /**
      * 根据比赛ID统计报名人数
      */
-    long countByCompetition(Competition competition);
+    long countByCompetitionId(Long competitionId);
+    
+    /**
+     * 根据比赛ID和状态查找报名记录
+     */
+    List<PlayerCompetitionRegistration> findByCompetitionIdAndStatus(Long competitionId, PlayerCompetitionRegistration.RegistrationStatus status);
+    
+    /**
+     * 根据玩家ID和状态查找报名记录
+     */
+    List<PlayerCompetitionRegistration> findByPlayerIdAndStatus(Long playerId, PlayerCompetitionRegistration.RegistrationStatus status);
 }

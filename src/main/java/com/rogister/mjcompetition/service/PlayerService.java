@@ -41,8 +41,8 @@ public class PlayerService {
         player.setLastLoginTime(LocalDateTime.now());
         playerRepository.save(player);
         
-        // 生成JWT token
-        return jwtUtil.generateToken(username);
+        // 生成包含角色信息的JWT token
+        return jwtUtil.generateTokenWithRole(username, "PLAYER", "PLAYER");
     }
     
     /**
@@ -66,6 +66,17 @@ public class PlayerService {
         
         // 加密密码
         player.setPassword(passwordEncoder.encode(player.getPassword()));
+        
+        // 设置默认值
+        if (player.getCreatedAt() == null) {
+            player.setCreatedAt(LocalDateTime.now());
+        }
+        if (player.getUpdatedAt() == null) {
+            player.setUpdatedAt(LocalDateTime.now());
+        }
+        if (player.getIsActive() == null) {
+            player.setIsActive(true);
+        }
         
         return playerRepository.save(player);
     }

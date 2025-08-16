@@ -1,9 +1,9 @@
 package com.rogister.mjcompetition.repository;
 
 import com.rogister.mjcompetition.entity.Competition;
-import com.rogister.mjcompetition.entity.CompetitionRound;
 import com.rogister.mjcompetition.entity.MatchResult;
 import com.rogister.mjcompetition.entity.Player;
+import com.rogister.mjcompetition.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,59 +16,91 @@ import java.util.Optional;
 public interface MatchResultRepository extends JpaRepository<MatchResult, Long> {
     
     /**
-     * 根据比赛和轮次查找所有比赛成绩
+     * 根据比赛ID查找所有比赛记录
      */
-    List<MatchResult> findByCompetitionAndRoundOrderByMatchNumber(Competition competition, CompetitionRound round);
+    List<MatchResult> findByCompetitionId(Long competitionId);
     
     /**
-     * 根据比赛、轮次和比赛编号查找比赛成绩
+     * 根据比赛ID和轮次号查找该轮次的所有比赛记录
      */
-    Optional<MatchResult> findByCompetitionAndRoundAndMatchNumber(Competition competition, CompetitionRound round, Integer matchNumber);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber")
+    List<MatchResult> findByCompetitionIdAndRoundNumber(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber);
     
     /**
-     * 根据比赛查找所有比赛成绩
+     * 根据比赛ID和玩家ID查找该玩家参与的所有比赛记录
      */
-    List<MatchResult> findByCompetitionOrderByRoundRoundNumberAscMatchNumberAsc(Competition competition);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND (mr.eastPlayer.id = :playerId OR mr.southPlayer.id = :playerId OR mr.westPlayer.id = :playerId OR mr.northPlayer.id = :playerId)")
+    List<MatchResult> findByCompetitionIdAndPlayerId(@Param("competitionId") Long competitionId, @Param("playerId") Long playerId);
     
     /**
-     * 根据玩家查找所有参与的比赛成绩
+     * 根据玩家ID查找该玩家参与的所有比赛记录
      */
-    List<MatchResult> findByEastPlayerOrSouthPlayerOrWestPlayerOrNorthPlayerOrderByCompetitionAscRoundRoundNumberAscMatchNumberAsc(
-            Player eastPlayer, Player southPlayer, Player westPlayer, Player northPlayer);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.eastPlayer.id = :playerId OR mr.southPlayer.id = :playerId OR mr.westPlayer.id = :playerId OR mr.northPlayer.id = :playerId")
+    List<MatchResult> findByPlayerId(@Param("playerId") Long playerId);
     
     /**
-     * 根据比赛和轮次统计比赛场数
+     * 根据比赛ID、轮次号和玩家ID查找该玩家在该轮次参与的比赛记录
      */
-    long countByCompetitionAndRound(Competition competition, CompetitionRound round);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber AND (mr.eastPlayer.id = :playerId OR mr.southPlayer.id = :playerId OR mr.westPlayer.id = :playerId OR mr.northPlayer.id = :playerId)")
+    List<MatchResult> findByCompetitionIdAndRoundNumberAndPlayerId(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber, @Param("playerId") Long playerId);
+    
+    // 注意：MatchResult 实体是为个人赛设计的，不支持团队查询
+    // 团队赛需要通过玩家ID来查询团队成员参与的比赛
+    
+    // 注意：MatchResult 实体是为个人赛设计的，不支持团队查询
+    // 团队赛需要通过玩家ID来查询团队成员参与的比赛
     
     /**
-     * 根据比赛、轮次和玩家查找该玩家参与的比赛成绩
+     * 根据比赛、轮次和比赛编号查找比赛记录
      */
-    List<MatchResult> findByCompetitionAndRoundAndEastPlayerOrSouthPlayerOrWestPlayerOrNorthPlayer(
-            Competition competition, CompetitionRound round, Player eastPlayer, Player southPlayer, Player westPlayer, Player northPlayer);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber AND mr.matchNumber = :matchNumber")
+    Optional<MatchResult> findByCompetitionAndRoundAndMatchNumber(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber, @Param("matchNumber") Integer matchNumber);
     
     /**
-     * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序
+     * 根据比赛和轮次查找所有比赛记录，按比赛编号排序
      */
-    List<MatchResult> findByCompetitionAndRoundOrderByMatchTimeAsc(Competition competition, CompetitionRound round);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber ORDER BY mr.matchNumber")
+    List<MatchResult> findByCompetitionAndRoundOrderByMatchNumber(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber);
     
     /**
-     * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序（包含比赛编号作为第二排序条件）
+     * 根据比赛和轮次查找所有比赛记录，按比赛时间升序排序
      */
-    List<MatchResult> findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(Competition competition, CompetitionRound round);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber ORDER BY mr.matchTime ASC")
+    List<MatchResult> findByCompetitionAndRoundOrderByMatchTimeAsc(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber);
     
     /**
-     * 根据比赛和轮次查找所有比赛记录，用于计算玩家排名
+     * 根据比赛和轮次查找所有比赛记录，按比赛时间升序、比赛编号升序排序
      */
-    List<MatchResult> findByCompetitionAndRound(Competition competition, CompetitionRound round);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber ORDER BY mr.matchTime ASC, mr.matchNumber ASC")
+    List<MatchResult> findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber);
     
     /**
-     * 根据比赛、轮次和玩家查找该玩家参与的所有比赛记录
+     * 根据比赛和轮次查找所有比赛记录
      */
-    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition = :competition AND mr.round = :round " +
-           "AND (mr.eastPlayer = :player OR mr.southPlayer = :player OR mr.westPlayer = :player OR mr.northPlayer = :player)")
-    List<MatchResult> findByCompetitionAndRoundAndPlayer(
-            @Param("competition") Competition competition, 
-            @Param("round") CompetitionRound round, 
-            @Param("player") Player player);
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber")
+    List<MatchResult> findByCompetitionAndRound(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber);
+    
+    /**
+     * 根据比赛、轮次和玩家查找该玩家参与的比赛记录
+     */
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber AND (mr.eastPlayer.id = :playerId OR mr.southPlayer.id = :playerId OR mr.westPlayer.id = :playerId OR mr.northPlayer.id = :playerId)")
+    List<MatchResult> findByCompetitionAndRoundAndPlayer(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber, @Param("playerId") Long playerId);
+    
+    /**
+     * 根据比赛查找所有比赛记录，按轮次号升序、比赛编号升序排序
+     */
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.competition.id = :competitionId ORDER BY mr.round.roundNumber ASC, mr.matchNumber ASC")
+    List<MatchResult> findByCompetitionOrderByRoundRoundNumberAscMatchNumberAsc(@Param("competitionId") Long competitionId);
+    
+    /**
+     * 根据玩家查找该玩家参与的所有比赛记录，按比赛升序、轮次号升序、比赛编号升序排序
+     */
+    @Query("SELECT mr FROM MatchResult mr WHERE mr.eastPlayer.id = :playerId OR mr.southPlayer.id = :playerId OR mr.westPlayer.id = :playerId OR mr.northPlayer.id = :playerId ORDER BY mr.competition.id ASC, mr.round.roundNumber ASC, mr.matchNumber ASC")
+    List<MatchResult> findByEastPlayerOrSouthPlayerOrWestPlayerOrNorthPlayerOrderByCompetitionAscRoundRoundNumberAscMatchNumberAsc(@Param("playerId") Long playerId);
+    
+    /**
+     * 根据比赛和轮次统计比赛记录数量
+     */
+    @Query("SELECT COUNT(mr) FROM MatchResult mr WHERE mr.competition.id = :competitionId AND mr.round.roundNumber = :roundNumber")
+    long countByCompetitionAndRound(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber);
 } 

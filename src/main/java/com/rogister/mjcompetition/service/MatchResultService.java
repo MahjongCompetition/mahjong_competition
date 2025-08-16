@@ -30,7 +30,7 @@ public class MatchResultService {
         
         // 检查比赛编号是否已存在
         if (matchResultRepository.findByCompetitionAndRoundAndMatchNumber(
-                matchResult.getCompetition(), matchResult.getRound(), matchResult.getMatchNumber()).isPresent()) {
+                matchResult.getCompetition().getId(), matchResult.getRound().getRoundNumber(), matchResult.getMatchNumber()).isPresent()) {
             throw new RuntimeException("该轮次的比赛编号已存在: " + matchResult.getMatchNumber());
         }
         
@@ -59,28 +59,28 @@ public class MatchResultService {
      * 根据比赛、轮次和比赛编号查找比赛成绩
      */
     public Optional<MatchResult> findByCompetitionAndRoundAndMatchNumber(Competition competition, CompetitionRound round, Integer matchNumber) {
-        return matchResultRepository.findByCompetitionAndRoundAndMatchNumber(competition, round, matchNumber);
+        return matchResultRepository.findByCompetitionAndRoundAndMatchNumber(competition.getId(), round.getRoundNumber(), matchNumber);
     }
     
     /**
      * 根据比赛和轮次查找所有比赛成绩
      */
     public List<MatchResult> findByCompetitionAndRound(Competition competition, CompetitionRound round) {
-        return matchResultRepository.findByCompetitionAndRoundOrderByMatchNumber(competition, round);
+        return matchResultRepository.findByCompetitionAndRoundOrderByMatchNumber(competition.getId(), round.getRoundNumber());
     }
     
     /**
      * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序
      */
     public List<MatchResult> findByCompetitionAndRoundOrderByTime(Competition competition, CompetitionRound round) {
-        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAsc(competition, round);
+        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAsc(competition.getId(), round.getRoundNumber());
     }
     
     /**
      * 根据比赛和轮次查找所有比赛记录，按照比赛时间从早到晚排序（包含比赛编号作为第二排序条件）
      */
     public List<MatchResult> findByCompetitionAndRoundOrderByTimeAndNumber(Competition competition, CompetitionRound round) {
-        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(competition, round);
+        return matchResultRepository.findByCompetitionAndRoundOrderByMatchTimeAscMatchNumberAsc(competition.getId(), round.getRoundNumber());
     }
     
     /**
@@ -88,7 +88,7 @@ public class MatchResultService {
      */
     public List<PlayerRoundRanking> calculatePlayerRoundRankings(Competition competition, CompetitionRound round) {
         // 获取该轮次下的所有比赛记录
-        List<MatchResult> matchResults = matchResultRepository.findByCompetitionAndRound(competition, round);
+        List<MatchResult> matchResults = matchResultRepository.findByCompetitionAndRound(competition.getId(), round.getRoundNumber());
         
         // 用于存储每个玩家的统计信息
         Map<Player, PlayerRoundRanking> playerRankings = new HashMap<>();
@@ -135,7 +135,7 @@ public class MatchResultService {
     public PlayerRoundRanking calculatePlayerRoundRanking(Competition competition, CompetitionRound round, Player player) {
         // 获取该玩家在该轮次下的所有比赛记录
         List<MatchResult> playerMatches = matchResultRepository.findByCompetitionAndRoundAndPlayer(
-                competition, round, player);
+                competition.getId(), round.getRoundNumber(), player.getId());
         
         PlayerRoundRanking ranking = new PlayerRoundRanking(player, competition, round);
         
@@ -176,7 +176,7 @@ public class MatchResultService {
      * 根据比赛查找所有比赛成绩
      */
     public List<MatchResult> findByCompetition(Competition competition) {
-        return matchResultRepository.findByCompetitionOrderByRoundRoundNumberAscMatchNumberAsc(competition);
+        return matchResultRepository.findByCompetitionOrderByRoundRoundNumberAscMatchNumberAsc(competition.getId());
     }
     
     /**
@@ -184,7 +184,7 @@ public class MatchResultService {
      */
     public List<MatchResult> findByPlayer(Player player) {
         return matchResultRepository.findByEastPlayerOrSouthPlayerOrWestPlayerOrNorthPlayerOrderByCompetitionAscRoundRoundNumberAscMatchNumberAsc(
-                player, player, player, player);
+                player.getId());
     }
     
     /**
@@ -192,14 +192,14 @@ public class MatchResultService {
      */
     public List<MatchResult> findByCompetitionAndRoundAndPlayer(Competition competition, CompetitionRound round, Player player) {
         return matchResultRepository.findByCompetitionAndRoundAndPlayer(
-                competition, round, player);
+                competition.getId(), round.getRoundNumber(), player.getId());
     }
     
     /**
      * 根据比赛和轮次统计比赛场数
      */
     public long countByCompetitionAndRound(Competition competition, CompetitionRound round) {
-        return matchResultRepository.countByCompetitionAndRound(competition, round);
+        return matchResultRepository.countByCompetitionAndRound(competition.getId(), round.getRoundNumber());
     }
     
     /**
@@ -262,7 +262,7 @@ public class MatchResultService {
      * 获取下一场比赛编号
      */
     public Integer getNextMatchNumber(Competition competition, CompetitionRound round) {
-        long currentCount = matchResultRepository.countByCompetitionAndRound(competition, round);
+        long currentCount = matchResultRepository.countByCompetitionAndRound(competition.getId(), round.getRoundNumber());
         return (int) (currentCount + 1);
     }
     

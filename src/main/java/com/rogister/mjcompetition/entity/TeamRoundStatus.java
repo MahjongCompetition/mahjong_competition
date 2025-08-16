@@ -9,20 +9,20 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "player_round_status")
+@Table(name = "team_round_status")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlayerRoundStatus {
+public class TeamRoundStatus {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "player_id", nullable = false)
+    @JoinColumn(name = "team_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-    private Player player;
+    private Team team;
     
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "competition_id", nullable = false)
@@ -66,8 +66,8 @@ public class PlayerRoundStatus {
     }
     
     // 带参数的构造函数
-    public PlayerRoundStatus(Player player, Competition competition, Integer roundNumber, Integer initialScore) {
-        this.player = player;
+    public TeamRoundStatus(Team team, Competition competition, Integer roundNumber, Integer initialScore) {
+        this.team = team;
         this.competition = competition;
         this.roundNumber = roundNumber;
         this.initialScore = initialScore;
@@ -101,4 +101,4 @@ public class PlayerRoundStatus {
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-} 
+}

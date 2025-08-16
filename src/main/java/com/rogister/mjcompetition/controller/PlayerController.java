@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/players")
+@RequestMapping("/api/player")
 @CrossOrigin(origins = "*")
 public class PlayerController {
     
@@ -22,10 +22,10 @@ public class PlayerController {
      * 玩家注册账户
      */
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Player>> registerPlayer(@RequestBody Player player) {
+    public ResponseEntity<ApiResponse<String>> registerPlayer(@RequestBody Player player) {
         try {
-            Player registeredPlayer = playerService.createPlayer(player);
-            return ResponseEntity.ok(ApiResponse.success("注册成功", registeredPlayer));
+            playerService.createPlayer(player);
+            return ResponseEntity.ok(ApiResponse.success("注册成功", null));
         } catch (RuntimeException e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
@@ -37,7 +37,7 @@ public class PlayerController {
      * 玩家登录
      */
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Player>> loginPlayer(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<ApiResponse<String>> loginPlayer(@RequestBody Map<String, String> loginRequest) {
         try {
             String username = loginRequest.get("username");
             String password = loginRequest.get("password");
@@ -47,12 +47,7 @@ public class PlayerController {
             }
             
             String token = playerService.login(username, password);
-            Player loggedInPlayer = playerService.findByUsername(username).orElse(null);
-            if (loggedInPlayer != null) {
-                return ResponseEntity.ok(ApiResponse.success("登录成功", loggedInPlayer));
-            } else {
-                return ResponseEntity.ok(ApiResponse.error("登录失败"));
-            }
+            return ResponseEntity.ok(ApiResponse.success("登录成功", token));
         } catch (RuntimeException e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
