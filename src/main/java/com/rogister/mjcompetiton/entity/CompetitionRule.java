@@ -1,10 +1,16 @@
 package com.rogister.mjcompetiton.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "competition_rules")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompetitionRule {
     
     @Id
@@ -35,94 +41,17 @@ public class CompetitionRule {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // 构造函数
-    public CompetitionRule() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-    
+    // 带参数的构造函数
     public CompetitionRule(String ruleName, Integer originPoints, Integer firstPlacePoints, Integer secondPlacePoints, 
                           Integer thirdPlacePoints, Integer fourthPlacePoints) {
-        this();
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
         this.ruleName = ruleName;
         this.originPoints = originPoints;
         this.firstPlacePoints = firstPlacePoints;
         this.secondPlacePoints = secondPlacePoints;
         this.thirdPlacePoints = thirdPlacePoints;
         this.fourthPlacePoints = fourthPlacePoints;
-    }
-    
-    // Getter和Setter方法
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public String getRuleName() {
-        return ruleName;
-    }
-    
-    public void setRuleName(String ruleName) {
-        this.ruleName = ruleName;
-    }
-    
-    public Integer getOriginPoints() {
-        return originPoints;
-    }
-    
-    public void setOriginPoints(Integer originPoints) {
-        this.originPoints = originPoints;
-    }
-    
-    public Integer getFirstPlacePoints() {
-        return firstPlacePoints;
-    }
-    
-    public void setFirstPlacePoints(Integer firstPlacePoints) {
-        this.firstPlacePoints = firstPlacePoints;
-    }
-    
-    public Integer getSecondPlacePoints() {
-        return secondPlacePoints;
-    }
-    
-    public void setSecondPlacePoints(Integer secondPlacePoints) {
-        this.secondPlacePoints = secondPlacePoints;
-    }
-    
-    public Integer getThirdPlacePoints() {
-        return thirdPlacePoints;
-    }
-    
-    public void setThirdPlacePoints(Integer thirdPlacePoints) {
-        this.thirdPlacePoints = thirdPlacePoints;
-    }
-    
-    public Integer getFourthPlacePoints() {
-        return fourthPlacePoints;
-    }
-    
-    public void setFourthPlacePoints(Integer fourthPlacePoints) {
-        this.fourthPlacePoints = fourthPlacePoints;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
     
     @PreUpdate

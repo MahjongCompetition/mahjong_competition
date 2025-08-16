@@ -1,11 +1,17 @@
 package com.rogister.mjcompetiton.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Entity
 @Table(name = "match_results")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class MatchResult {
     
     @Id
@@ -82,8 +88,9 @@ public class MatchResult {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // 构造函数
-    public MatchResult() {
+    // 带参数的构造函数
+    public MatchResult(Competition competition, CompetitionRound round, Integer matchNumber,
+                      Player eastPlayer, Player southPlayer, Player westPlayer, Player northPlayer) {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.totalScore = 100000; // 默认总分100000
@@ -91,11 +98,6 @@ public class MatchResult {
         this.southPenalty = 0;
         this.westPenalty = 0;
         this.northPenalty = 0;
-    }
-    
-    public MatchResult(Competition competition, CompetitionRound round, Integer matchNumber,
-                      Player eastPlayer, Player southPlayer, Player westPlayer, Player northPlayer) {
-        this();
         this.competition = competition;
         this.round = round;
         this.matchNumber = matchNumber;
@@ -205,183 +207,6 @@ public class MatchResult {
         public String getPosition() { return position; }
         public Integer getRank() { return rank; }
         public Double getActualPoints() { return actualPoints; }
-    }
-    
-    // Getter和Setter方法
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public Competition getCompetition() {
-        return competition;
-    }
-    
-    public void setCompetition(Competition competition) {
-        this.competition = competition;
-    }
-    
-    public CompetitionRound getRound() {
-        return round;
-    }
-    
-    public void setRound(CompetitionRound round) {
-        this.round = round;
-    }
-    
-    public Integer getMatchNumber() {
-        return matchNumber;
-    }
-    
-    public void setMatchNumber(Integer matchNumber) {
-        this.matchNumber = matchNumber;
-    }
-    
-    public String getMatchName() {
-        return matchName;
-    }
-    
-    public void setMatchName(String matchName) {
-        this.matchName = matchName;
-    }
-    
-    public Player getEastPlayer() {
-        return eastPlayer;
-    }
-    
-    public void setEastPlayer(Player eastPlayer) {
-        this.eastPlayer = eastPlayer;
-    }
-    
-    public Integer getEastScore() {
-        return eastScore;
-    }
-    
-    public void setEastScore(Integer eastScore) {
-        this.eastScore = eastScore;
-    }
-    
-    public Integer getEastPenalty() {
-        return eastPenalty;
-    }
-    
-    public void setEastPenalty(Integer eastPenalty) {
-        this.eastPenalty = eastPenalty != null ? eastPenalty : 0;
-    }
-    
-    public Player getSouthPlayer() {
-        return southPlayer;
-    }
-    
-    public void setSouthPlayer(Player southPlayer) {
-        this.southPlayer = southPlayer;
-    }
-    
-    public Integer getSouthScore() {
-        return southScore;
-    }
-    
-    public void setSouthScore(Integer southScore) {
-        this.southScore = southScore;
-    }
-    
-    public Integer getSouthPenalty() {
-        return southPenalty;
-    }
-    
-    public void setSouthPenalty(Integer southPenalty) {
-        this.southPenalty = southPenalty != null ? southPenalty : 0;
-    }
-    
-    public Player getWestPlayer() {
-        return westPlayer;
-    }
-    
-    public void setWestPlayer(Player westPlayer) {
-        this.westPlayer = westPlayer;
-    }
-    
-    public Integer getWestScore() {
-        return westScore;
-    }
-    
-    public void setWestScore(Integer westScore) {
-        this.westScore = westScore;
-    }
-    
-    public Integer getWestPenalty() {
-        return westPenalty;
-    }
-    
-    public void setWestPenalty(Integer westPenalty) {
-        this.westPenalty = westPenalty != null ? westPenalty : 0;
-    }
-    
-    public Player getNorthPlayer() {
-        return northPlayer;
-    }
-    
-    public void setNorthPlayer(Player northPlayer) {
-        this.northPlayer = northPlayer;
-    }
-    
-    public Integer getNorthScore() {
-        return northScore;
-    }
-    
-    public void setNorthScore(Integer northScore) {
-        this.northScore = northScore;
-    }
-    
-    public Integer getNorthPenalty() {
-        return northPenalty;
-    }
-    
-    public void setNorthPenalty(Integer northPenalty) {
-        this.northPenalty = northPenalty != null ? northPenalty : 0;
-    }
-    
-    public Integer getTotalScore() {
-        return totalScore;
-    }
-    
-    public void setTotalScore(Integer totalScore) {
-        this.totalScore = totalScore;
-    }
-    
-    public LocalDateTime getMatchTime() {
-        return matchTime;
-    }
-    
-    public void setMatchTime(LocalDateTime matchTime) {
-        this.matchTime = matchTime;
-    }
-    
-    public String getRemarks() {
-        return remarks;
-    }
-    
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
     
     @PreUpdate

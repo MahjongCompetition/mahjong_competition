@@ -1,10 +1,16 @@
 package com.rogister.mjcompetiton.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "competition_rounds")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompetitionRound {
     
     @Id
@@ -36,90 +42,13 @@ public class CompetitionRound {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // 构造函数
-    public CompetitionRound() {
+    // 带参数的构造函数
+    public CompetitionRound(Competition competition, Integer roundNumber, String roundName) {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-    }
-    
-    public CompetitionRound(Competition competition, Integer roundNumber, String roundName) {
-        this();
         this.competition = competition;
         this.roundNumber = roundNumber;
         this.roundName = roundName;
-    }
-    
-    // Getter和Setter方法
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public Competition getCompetition() {
-        return competition;
-    }
-    
-    public void setCompetition(Competition competition) {
-        this.competition = competition;
-    }
-    
-    public Integer getRoundNumber() {
-        return roundNumber;
-    }
-    
-    public void setRoundNumber(Integer roundNumber) {
-        this.roundNumber = roundNumber;
-    }
-    
-    public String getRoundName() {
-        return roundName;
-    }
-    
-    public void setRoundName(String roundName) {
-        this.roundName = roundName;
-    }
-    
-    public Boolean getIsActive() {
-        return isActive;
-    }
-    
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
-    
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-    
-    public void setStartTime(LocalDateTime startTime) {
-        this.startTime = startTime;
-    }
-    
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
-    
-    public void setEndTime(LocalDateTime endTime) {
-        this.endTime = endTime;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
     
     @PreUpdate

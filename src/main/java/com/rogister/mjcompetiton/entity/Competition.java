@@ -1,10 +1,16 @@
 package com.rogister.mjcompetiton.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "competitions")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Competition {
     
     @Id
@@ -34,66 +40,13 @@ public class Competition {
         INDIVIDUAL  // 个人赛
     }
     
-    // 构造函数
-    public Competition() {
+    // 带参数的构造函数
+    public Competition(String competitionName, CompetitionType competitionType, CompetitionRule rule) {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-    }
-    
-    public Competition(String competitionName, CompetitionType competitionType, CompetitionRule rule) {
-        this();
         this.competitionName = competitionName;
         this.competitionType = competitionType;
         this.rule = rule;
-    }
-    
-    // Getter和Setter方法
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public String getCompetitionName() {
-        return competitionName;
-    }
-    
-    public void setCompetitionName(String competitionName) {
-        this.competitionName = competitionName;
-    }
-    
-    public CompetitionType getCompetitionType() {
-        return competitionType;
-    }
-    
-    public void setCompetitionType(CompetitionType competitionType) {
-        this.competitionType = competitionType;
-    }
-    
-    public CompetitionRule getRule() {
-        return rule;
-    }
-    
-    public void setRule(CompetitionRule rule) {
-        this.rule = rule;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
     
     @PreUpdate
