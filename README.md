@@ -9,17 +9,6 @@
 - MariaDB
 - Java 17
 - Gradle
-
-## 数据库配置
-
-### 1. 数据库连接信息
-
-数据库已配置为连接远程服务器：
-- 地址：115.159.211.128:3306
-- 数据库名：mahjong_competition
-- 用户名：mahjong_competition
-- 密码：37efa4RFwjpjhE68
-
 ### 2. 数据库表结构
 
 系统会自动创建以下表：
