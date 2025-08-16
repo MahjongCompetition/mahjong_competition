@@ -3,11 +3,15 @@ package com.rogister.mjcompetition.controller;
 import com.rogister.mjcompetition.dto.ApiResponse;
 import com.rogister.mjcompetition.entity.Team;
 import com.rogister.mjcompetition.entity.TeamMember;
+import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.service.TeamService;
+import com.rogister.mjcompetition.service.PlayerService;
+import com.rogister.mjcompetition.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,18 +24,60 @@ public class TeamController {
     @Autowired
     private TeamService teamService;
     
+    @Autowired
+    private PlayerService playerService;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
+    
+    /**
+     * 从请求中获取当前登录的玩家
+     */
+    private Player getCurrentPlayer(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("未提供有效的认证token");
+        }
+        
+        String token = authHeader.substring(7);
+        String username;
+        try {
+            username = jwtUtil.extractUsername(token);
+        } catch (Exception e) {
+            throw new RuntimeException("Token格式无效");
+        }
+        
+        if (!jwtUtil.validateToken(token, username)) {
+            throw new RuntimeException("Token无效或已过期");
+        }
+        
+        return playerService.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("玩家不存在，用户名: " + username));
+    }
+    
     /**
      * 创建团队
      */
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<Team>> createTeam(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<Team>> createTeam(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         try {
-            String teamName = (String) request.get("teamName");
-            Long captainId = Long.valueOf(request.get("captainId").toString());
-            Integer maxMembers = Integer.valueOf(request.get("maxMembers").toString());
+            // 从JWT token中获取当前玩家作为队长
+            Player captain = getCurrentPlayer(httpRequest);
+            Long captainId = captain.getId();
             
-            if (teamName == null || captainId == null || maxMembers == null) {
-                return ResponseEntity.ok(ApiResponse.error("团队名称、队长ID和最大成员数不能为空"));
+            // 获取请求参数
+            String teamName = (String) request.get("teamName");
+            Object maxMembersObj = request.get("maxMembers");
+            
+            if (teamName == null || maxMembersObj == null) {
+                return ResponseEntity.ok(ApiResponse.error("团队名称和最大成员数不能为空"));
+            }
+            
+            Integer maxMembers;
+            try {
+                maxMembers = Integer.valueOf(maxMembersObj.toString());
+            } catch (NumberFormatException e) {
+                return ResponseEntity.ok(ApiResponse.error("最大成员数必须是有效的数字"));
             }
             
             if (maxMembers < 2 || maxMembers > 10) {
@@ -51,13 +97,16 @@ public class TeamController {
      * 加入团队
      */
     @PostMapping("/join")
-    public ResponseEntity<ApiResponse<Team>> joinTeam(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<Team>> joinTeam(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         try {
-            String teamCode = (String) request.get("teamCode");
-            Long playerId = Long.valueOf(request.get("playerId").toString());
+            // 从JWT token中获取当前玩家
+            Player player = getCurrentPlayer(httpRequest);
+            Long playerId = player.getId();
             
-            if (teamCode == null || playerId == null) {
-                return ResponseEntity.ok(ApiResponse.error("团队编号和玩家ID不能为空"));
+            String teamCode = (String) request.get("teamCode");
+            
+            if (teamCode == null) {
+                return ResponseEntity.ok(ApiResponse.error("团队编号不能为空"));
             }
             
             TeamMember member = teamService.joinTeam(teamCode, playerId);
@@ -79,13 +128,23 @@ public class TeamController {
      * 离开团队
      */
     @PostMapping("/leave")
-    public ResponseEntity<ApiResponse<String>> leaveTeam(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<String>> leaveTeam(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         try {
-            Long teamId = Long.valueOf(request.get("teamId").toString());
-            Long playerId = Long.valueOf(request.get("playerId").toString());
+            // 从JWT token中获取当前玩家
+            Player player = getCurrentPlayer(httpRequest);
+            Long playerId = player.getId();
             
-            if (teamId == null || playerId == null) {
-                return ResponseEntity.ok(ApiResponse.error("团队ID和玩家ID不能为空"));
+            Object teamIdObj = request.get("teamId");
+            
+            if (teamIdObj == null) {
+                return ResponseEntity.ok(ApiResponse.error("团队ID不能为空"));
+            }
+            
+            Long teamId;
+            try {
+                teamId = Long.valueOf(teamIdObj.toString());
+            } catch (NumberFormatException e) {
+                return ResponseEntity.ok(ApiResponse.error("团队ID必须是有效的数字"));
             }
             
             teamService.leaveTeam(teamId, playerId);
@@ -101,13 +160,23 @@ public class TeamController {
      * 解散团队
      */
     @PostMapping("/dissolve")
-    public ResponseEntity<ApiResponse<String>> dissolveTeam(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<String>> dissolveTeam(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         try {
-            Long teamId = Long.valueOf(request.get("teamId").toString());
-            Long captainId = Long.valueOf(request.get("captainId").toString());
+            // 从JWT token中获取当前玩家作为队长
+            Player captain = getCurrentPlayer(httpRequest);
+            Long captainId = captain.getId();
             
-            if (teamId == null || captainId == null) {
-                return ResponseEntity.ok(ApiResponse.error("团队ID和队长ID不能为空"));
+            Object teamIdObj = request.get("teamId");
+            
+            if (teamIdObj == null) {
+                return ResponseEntity.ok(ApiResponse.error("团队ID不能为空"));
+            }
+            
+            Long teamId;
+            try {
+                teamId = Long.valueOf(teamIdObj.toString());
+            } catch (NumberFormatException e) {
+                return ResponseEntity.ok(ApiResponse.error("团队ID必须是有效的数字"));
             }
             
             teamService.dissolveTeam(teamId, captainId);
