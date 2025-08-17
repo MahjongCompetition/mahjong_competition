@@ -51,7 +51,7 @@ public class PlayerController {
     })
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<String>> registerPlayer(
-            @Parameter(description = "玩家注册信息", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody Player player) {
+            @Parameter(description = "玩家注册信息", required = true) @RequestBody Player player) {
         try {
             playerService.createPlayer(player);
             return ResponseEntity.ok(ApiResponse.success("注册成功", null));
@@ -72,7 +72,7 @@ public class PlayerController {
     })
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<String>> loginPlayer(
-            @Parameter(description = "玩家登录请求信息", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody PlayerLoginRequest loginRequest) {
+            @Parameter(description = "玩家登录请求信息", required = true) @RequestBody PlayerLoginRequest loginRequest) {
         try {
             String username = loginRequest.getUsername();
             String password = loginRequest.getPassword();

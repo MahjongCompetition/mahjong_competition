@@ -77,7 +77,7 @@ public class TeamController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Team>> createTeam(
-            @Parameter(description = "团队创建请求信息", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody TeamCreateRequest request,
+            @Parameter(description = "团队创建请求信息", required = true) @RequestBody TeamCreateRequest request,
             HttpServletRequest httpRequest) {
         try {
             // 从JWT token中获取当前玩家作为队长

@@ -37,7 +37,7 @@ public class AdvancementController {
     })
     @PostMapping("/players/advance")
     public ResponseEntity<ApiResponse<List<PlayerRoundStatus>>> advancePlayersToRound(
-            @Parameter(description = "晋级请求，包含competitionId、playerIds、targetRound、initialScore", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody Map<String, Object> request) {
+            @Parameter(description = "晋级请求，包含competitionId、playerIds、targetRound、initialScore", required = true) @RequestBody Map<String, Object> request) {
         try {
             Long competitionId = Long.valueOf(request.get("competitionId").toString());
             @SuppressWarnings("unchecked")

@@ -54,8 +54,8 @@ public class PlayerCompetitionRegistrationController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<PlayerCompetitionRegistration>> registerForCompetition(
-            @Parameter(description = "JWT认证令牌", requiredMode = Schema.RequiredMode.REQUIRED) @RequestHeader("Authorization") String authorization,
-            @Parameter(description = "比赛报名请求信息", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody CompetitionRegistrationRequest request) {
+            @Parameter(description = "JWT认证令牌", required = true) @RequestHeader("Authorization") String authorization,
+            @Parameter(description = "比赛报名请求信息", required = true) @RequestBody CompetitionRegistrationRequest request) {
         try {
             // 从Authorization header中提取token
             String token = authorization.replace("Bearer ", "");
