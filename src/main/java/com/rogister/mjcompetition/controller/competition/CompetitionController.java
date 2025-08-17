@@ -37,7 +37,7 @@ public class CompetitionController {
     })
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<Competition>> createCompetition(
-            @Parameter(description = "比赛创建请求信息", required = true) @RequestBody CompetitionCreateRequest request) {
+            @Parameter(description = "比赛创建请求信息", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody CompetitionCreateRequest request) {
         try {
             // 验证请求参数
             if (request.getName() == null || request.getName().trim().isEmpty()) {

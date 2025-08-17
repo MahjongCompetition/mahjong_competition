@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class CompetitionCreateRequest {
 
     @JsonProperty("name")
-    @Schema(description = "比赛名称", example = "2024年麻将锦标赛", required = true)
+    @Schema(description = "比赛名称", example = "2024年麻将锦标赛", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
     @JsonProperty("description")
@@ -24,7 +24,8 @@ public class CompetitionCreateRequest {
     private String description;
 
     @JsonProperty("type")
-    @Schema(description = "比赛类型", example = "INDIVIDUAL", allowableValues = { "INDIVIDUAL", "TEAM" }, required = true)
+    @Schema(description = "比赛类型", example = "INDIVIDUAL", allowableValues = { "INDIVIDUAL",
+            "TEAM" }, requiredMode = Schema.RequiredMode.REQUIRED)
     private String type; // INDIVIDUAL 或 TEAM
 
     @JsonProperty("maxParticipants")
@@ -38,7 +39,7 @@ public class CompetitionCreateRequest {
 
     @JsonProperty("registrationEndTime")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    @Schema(description = "报名结束时间", example = "2024-01-31T23:59:59", required = true)
+    @Schema(description = "报名结束时间", example = "2024-01-31T23:59:59", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime registrationEndTime;
 
     @JsonProperty("startTime")
@@ -52,6 +53,6 @@ public class CompetitionCreateRequest {
     private LocalDateTime endTime;
 
     @JsonProperty("ruleId")
-    @Schema(description = "比赛规则ID", example = "1", required = true)
+    @Schema(description = "比赛规则ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long ruleId;
 }

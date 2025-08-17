@@ -38,7 +38,7 @@ public class CompetitionRuleController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<ApiResponse<CompetitionRule>> createCompetitionRule(
-            @Parameter(description = "比赛规则信息", required = true) @RequestBody CompetitionRule competitionRule) {
+            @Parameter(description = "比赛规则信息", requiredMode = Schema.RequiredMode.REQUIRED) @RequestBody CompetitionRule competitionRule) {
         try {
             CompetitionRule createdRule = competitionRuleService.createCompetitionRule(competitionRule);
             return ResponseEntity.ok(ApiResponse.success("创建比赛规则成功", createdRule));

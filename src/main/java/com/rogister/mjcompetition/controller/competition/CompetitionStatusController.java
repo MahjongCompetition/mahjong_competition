@@ -34,8 +34,8 @@ public class CompetitionStatusController {
     })
     @GetMapping("/{competitionId}/round/{roundNumber}")
     public ResponseEntity<ApiResponse<CompetitionStatusResponse>> getCompetitionStatus(
-            @Parameter(description = "比赛ID", required = true, example = "1") @PathVariable Long competitionId,
-            @Parameter(description = "轮次编号", required = true, example = "1") @PathVariable Integer roundNumber) {
+            @Parameter(description = "比赛ID", requiredMode = Schema.RequiredMode.REQUIRED, example = "1") @PathVariable Long competitionId,
+            @Parameter(description = "轮次编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1") @PathVariable Integer roundNumber) {
         try {
             CompetitionStatusResponse response = competitionStatusService
                     .getCompetitionStatus(competitionId, roundNumber);
