@@ -5,6 +5,7 @@ import com.rogister.mjcompetition.dto.player.PlayerTeamsResponse;
 import com.rogister.mjcompetition.dto.player.PlayerLoginRequest;
 import com.rogister.mjcompetition.dto.common.ChangePasswordRequest;
 import com.rogister.mjcompetition.dto.player.PlayerStatusUpdateRequest;
+import com.rogister.mjcompetition.dto.team.TeamCompetitionRegistrationRequest;
 import com.rogister.mjcompetition.entity.player.Player;
 import com.rogister.mjcompetition.entity.team.Team;
 import com.rogister.mjcompetition.service.player.PlayerService;
@@ -23,6 +24,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -161,7 +163,7 @@ public class PlayerController {
      * 获取当前玩家的团队信息
      * 
      * @param type 可选参数：
-     *             - 不传或为空：返回我加入的和我创建的所有团队
+     *             - 不传或为空：返回我加入的所有团队，并标识哪些是我创建的
      *             - "created"：只返回我创建的团队
      */
     @GetMapping("/my-teams")
@@ -193,19 +195,36 @@ public class PlayerController {
 
             Long playerId = player.getId();
 
-            // 根据参数决定返回的团队类型
+            // 获取所有团队信息
+            List<Team> allTeams = teamService.findAllTeamsByPlayerId(playerId);
             List<Team> createdTeams = teamService.findByCaptainId(playerId);
-            List<Team> joinedTeams;
+
+            // 创建团队信息列表，标识是否为我创建的团队
+            List<TeamCompetitionRegistrationRequest.TeamInfo> teamInfos = new ArrayList<>();
 
             if ("created".equals(type)) {
                 // 只返回我创建的团队
-                joinedTeams = createdTeams; // 创建的团队也是加入的团队
-                PlayerTeamsResponse response = new PlayerTeamsResponse(createdTeams, joinedTeams);
+                for (Team team : createdTeams) {
+                    // 获取队长姓名
+                    String captainName = playerService.findById(team.getCaptainId())
+                            .map(Player::getNickname)
+                            .orElse("未知");
+                    teamInfos.add(new TeamCompetitionRegistrationRequest.TeamInfo(team, true, captainName));
+                }
+                PlayerTeamsResponse response = new PlayerTeamsResponse(teamInfos);
                 return ResponseEntity.ok(ApiResponse.success("获取我创建的团队信息成功", response));
             } else {
-                // 默认情况：返回我加入的和我创建的所有团队
-                joinedTeams = teamService.findAllTeamsByPlayerId(playerId);
-                PlayerTeamsResponse response = new PlayerTeamsResponse(createdTeams, joinedTeams);
+                // 返回所有团队，标识哪些是我创建的
+                for (Team team : allTeams) {
+                    boolean isCreatedByMe = createdTeams.stream()
+                            .anyMatch(createdTeam -> createdTeam.getId().equals(team.getId()));
+                    // 获取队长姓名
+                    String captainName = playerService.findById(team.getCaptainId())
+                            .map(Player::getNickname)
+                            .orElse("未知");
+                    teamInfos.add(new TeamCompetitionRegistrationRequest.TeamInfo(team, isCreatedByMe, captainName));
+                }
+                PlayerTeamsResponse response = new PlayerTeamsResponse(teamInfos);
                 return ResponseEntity.ok(ApiResponse.success("获取团队信息成功", response));
             }
 

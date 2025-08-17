@@ -15,16 +15,16 @@ import java.util.UUID;
 
 @Service
 public class TeamService {
-    
+
     @Autowired
     private TeamRepository teamRepository;
-    
+
     @Autowired
     private TeamMemberRepository teamMemberRepository;
-    
+
     @Autowired
     private PlayerRepository playerRepository;
-    
+
     /**
      * 创建团队
      */
@@ -34,29 +34,25 @@ public class TeamService {
         if (captainOpt.isEmpty()) {
             throw new RuntimeException("队长不存在");
         }
-        
-        // 检查队长是否已经是其他团队的成员
-        List<TeamMember> existingMemberships = teamMemberRepository.findByPlayerIdAndIsActiveTrue(captainId);
-        if (!existingMemberships.isEmpty()) {
-            throw new RuntimeException("队长已经是其他团队的成员，无法创建新团队");
-        }
-        
+
+        // 允许队长创建多个团队，移除成员限制检查
+
         // 生成唯一的团队编号
         String teamCode = generateUniqueTeamCode();
-        
+
         // 创建团队
         Team team = new Team(teamName, teamCode, captainId, maxMembers);
         Team savedTeam = teamRepository.save(team);
-        
+
         // 创建队长成员关系
         Player captain = playerRepository.findById(captainId)
                 .orElseThrow(() -> new RuntimeException("队长不存在，ID: " + captainId));
         TeamMember captainMember = new TeamMember(savedTeam.getId(), captain);
         teamMemberRepository.save(captainMember);
-        
+
         return savedTeam;
     }
-    
+
     /**
      * 生成唯一的团队编号
      */
@@ -68,7 +64,7 @@ public class TeamService {
         } while (teamRepository.existsByTeamCode(teamCode));
         return teamCode;
     }
-    
+
     /**
      * 加入团队
      */
@@ -78,38 +74,34 @@ public class TeamService {
         if (teamOpt.isEmpty()) {
             throw new RuntimeException("团队不存在");
         }
-        
+
         Team team = teamOpt.get();
-        
+
         // 检查团队是否已满
         if (team.getCurrentMembers() >= team.getMaxMembers()) {
             throw new RuntimeException("团队已满，无法加入");
         }
-        
+
         // 检查玩家是否已经是该团队成员
         if (teamMemberRepository.existsByTeamIdAndPlayerIdAndIsActiveTrue(team.getId(), playerId)) {
             throw new RuntimeException("玩家已经是该团队成员");
         }
-        
-        // 检查玩家是否已经是其他团队的成员
-        List<TeamMember> existingMemberships = teamMemberRepository.findByPlayerIdAndIsActiveTrue(playerId);
-        if (!existingMemberships.isEmpty()) {
-            throw new RuntimeException("玩家已经是其他团队的成员，无法加入新团队");
-        }
-        
+
+        // 允许玩家加入多个团队，移除成员限制检查
+
         // 创建成员关系
         Player player = playerRepository.findById(playerId)
                 .orElseThrow(() -> new RuntimeException("玩家不存在，ID: " + playerId));
         TeamMember member = new TeamMember(team.getId(), player);
         TeamMember savedMember = teamMemberRepository.save(member);
-        
+
         // 更新团队当前成员数
         team.setCurrentMembers(team.getCurrentMembers() + 1);
         teamRepository.save(team);
-        
+
         return savedMember;
     }
-    
+
     /**
      * 离开团队
      */
@@ -119,25 +111,25 @@ public class TeamService {
         if (memberOpt.isEmpty()) {
             throw new RuntimeException("玩家不是该团队成员");
         }
-        
+
         TeamMember member = memberOpt.get();
-        
+
         // 检查是否是队长
         Optional<Team> teamOpt = teamRepository.findById(teamId);
         if (teamOpt.isPresent() && teamOpt.get().getCaptainId().equals(playerId)) {
             throw new RuntimeException("队长无法离开团队，请先解散团队或转让队长");
         }
-        
+
         // 标记成员关系为非激活
         member.setIsActive(false);
         teamMemberRepository.save(member);
-        
+
         // 更新团队当前成员数
         Team team = teamOpt.get();
         team.setCurrentMembers(team.getCurrentMembers() - 1);
         teamRepository.save(team);
     }
-    
+
     /**
      * 解散团队（只有队长可以解散）
      */
@@ -146,18 +138,18 @@ public class TeamService {
         if (teamOpt.isEmpty()) {
             throw new RuntimeException("团队不存在");
         }
-        
+
         Team team = teamOpt.get();
-        
+
         // 检查是否是队长
         if (!team.getCaptainId().equals(captainId)) {
             throw new RuntimeException("只有队长可以解散团队");
         }
-        
+
         // 标记团队为非激活
         team.setIsActive(false);
         teamRepository.save(team);
-        
+
         // 标记所有成员关系为非激活
         List<TeamMember> members = teamMemberRepository.findByTeamIdAndIsActiveTrue(teamId);
         for (TeamMember member : members) {
@@ -165,42 +157,39 @@ public class TeamService {
             teamMemberRepository.save(member);
         }
     }
-    
+
     /**
      * 根据团队编号查找团队
      */
     public Optional<Team> findByTeamCode(String teamCode) {
         return teamRepository.findByTeamCode(teamCode);
     }
-    
+
     /**
      * 根据队长ID查找团队
      */
     public List<Team> findByCaptainId(Long captainId) {
         return teamRepository.findByCaptainIdAndIsActiveTrue(captainId);
     }
-    
+
     /**
-     * 根据玩家ID查找所属团队
+     * 根据玩家ID查找所属团队（已废弃，使用 findAllTeamsByPlayerId 代替）
+     * 
+     * @deprecated 使用 findAllTeamsByPlayerId 获取玩家的所有团队
      */
+    @Deprecated
     public Optional<Team> findTeamByPlayerId(Long playerId) {
-        List<TeamMember> memberships = teamMemberRepository.findByPlayerIdAndIsActiveTrue(playerId);
-        if (memberships.isEmpty()) {
-            return Optional.empty();
-        }
-        
-        // 玩家只能属于一个团队
-        Long teamId = memberships.get(0).getTeamId();
-        return teamRepository.findById(teamId);
+        List<Team> teams = findAllTeamsByPlayerId(playerId);
+        return teams.isEmpty() ? Optional.empty() : Optional.of(teams.get(0));
     }
-    
+
     /**
      * 获取团队所有成员
      */
     public List<TeamMember> getTeamMembers(Long teamId) {
         return teamMemberRepository.findByTeamIdAndIsActiveTrue(teamId);
     }
-    
+
     /**
      * 检查玩家是否是队长
      */
@@ -208,14 +197,14 @@ public class TeamService {
         Optional<Team> teamOpt = teamRepository.findById(teamId);
         return teamOpt.isPresent() && teamOpt.get().getCaptainId().equals(playerId);
     }
-    
+
     /**
      * 检查玩家是否是团队成员
      */
     public boolean isTeamMember(Long teamId, Long playerId) {
         return teamMemberRepository.existsByTeamIdAndPlayerIdAndIsActiveTrue(teamId, playerId);
     }
-    
+
     /**
      * 获取玩家加入的所有团队（包括历史团队）
      */
