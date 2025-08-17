@@ -1,0 +1,1019 @@
+{
+  "info": {
+    "name": "麻将比赛系统 API 测试集合",
+    "description": "麻将比赛系统的完整API测试集合，包含玩家管理、团队管理、比赛管理、成绩录入等功能",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "player_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "team_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "competition_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "玩家管理",
+      "item": [
+        {
+          "name": "玩家注册",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testplayer\",\n  \"password\": \"password123\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"13800138000\",\n  \"realName\": \"测试玩家\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/player/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player", "register"]
+            }
+          }
+        },
+        {
+          "name": "玩家登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testplayer\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/player/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('auth_token', response.data);",
+                  "        console.log('Token saved:', response.data);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "获取玩家信息",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/player/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player", "profile"]
+            }
+          }
+        },
+        {
+          "name": "修改密码",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/player/{{player_id}}/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player", "{{player_id}}", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "获取我的团队",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/player/my-teams",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player", "my-teams"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "",
+                  "description": "可选：created - 只返回我创建的团队"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "检查用户名可用性",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/player/check-username?username=testplayer",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player", "check-username"],
+              "query": [
+                {
+                  "key": "username",
+                  "value": "testplayer"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "团队管理",
+      "item": [
+        {
+          "name": "创建团队",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teamName\": \"测试团队\",\n  \"maxMembers\": 4\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "create"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('team_id', response.data.id);",
+                  "        console.log('Team ID saved:', response.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "加入团队",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teamId\": \"{{team_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/join",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "join"]
+            }
+          }
+        },
+        {
+          "name": "获取团队信息",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/{{team_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "{{team_id}}"]
+            }
+          }
+        },
+        {
+          "name": "获取所有团队",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams"]
+            }
+          }
+        },
+        {
+          "name": "搜索团队",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/search?keyword=测试",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "search"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "测试"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "退出团队",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teamId\": \"{{team_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/leave",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "leave"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "比赛管理",
+      "item": [
+        {
+          "name": "创建比赛",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"2024年麻将锦标赛\",\n  \"description\": \"年度重要比赛\",\n  \"type\": \"INDIVIDUAL\",\n  \"ruleId\": 1,\n  \"maxParticipants\": 64,\n  \"registrationStartTime\": \"2024-01-01T00:00:00\",\n  \"registrationEndTime\": \"2024-01-31T23:59:59\",\n  \"startTime\": \"2024-02-01T09:00:00\",\n  \"endTime\": \"2024-02-28T18:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/competitions/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competitions", "create"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('competition_id', response.data.id);",
+                  "        console.log('Competition ID saved:', response.data.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "获取所有比赛",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competitions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competitions"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取比赛",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competitions/{{competition_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competitions", "{{competition_id}}"]
+            }
+          }
+        },
+        {
+          "name": "根据名称获取比赛",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competitions/name/2024年麻将锦标赛",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competitions", "name", "2024年麻将锦标赛"]
+            }
+          }
+        },
+        {
+          "name": "更新比赛信息",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"2024年麻将锦标赛（更新）\",\n  \"description\": \"年度重要比赛 - 已更新\",\n  \"maxParticipants\": 128\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/competitions/{{competition_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competitions", "{{competition_id}}"]
+            }
+          }
+        },
+        {
+          "name": "删除比赛",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competitions/{{competition_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competitions", "{{competition_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "比赛报名",
+      "item": [
+        {
+          "name": "个人报名比赛",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competition_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/player-competition-registrations/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player-competition-registrations", "register"]
+            }
+          }
+        },
+        {
+          "name": "团队报名比赛",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competition_id}}\",\n  \"teamId\": \"{{team_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/player-competition-registrations/register-team",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player-competition-registrations", "register-team"]
+            }
+          }
+        },
+        {
+          "name": "获取个人报名记录",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/player-competition-registrations/my-registrations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player-competition-registrations", "my-registrations"]
+            }
+          }
+        },
+        {
+          "name": "获取团队报名记录",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/player-competition-registrations/my-team-registrations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "player-competition-registrations", "my-team-registrations"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "比赛成绩管理",
+      "item": [
+        {
+          "name": "创建比赛成绩",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competition_id}}\",\n  \"roundNumber\": 1,\n  \"matchNumber\": 1,\n  \"matchName\": \"第一轮第一场\",\n  \"eastPlayerId\": 1,\n  \"southPlayerId\": 2,\n  \"westPlayerId\": 3,\n  \"northPlayerId\": 4,\n  \"eastScore\": 1000,\n  \"southScore\": 800,\n  \"westScore\": 1200,\n  \"northScore\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/match-results",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results"]
+            }
+          }
+        },
+        {
+          "name": "获取比赛成绩列表",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/match-results",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results"],
+              "query": [
+                {
+                  "key": "competitionId",
+                  "value": "{{competition_id}}"
+                },
+                {
+                  "key": "roundNumber",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取成绩",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/match-results/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results", "1"]
+            }
+          }
+        },
+        {
+          "name": "更新比赛成绩",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eastScore\": 1100,\n  \"southScore\": 900,\n  \"westScore\": 1100,\n  \"northScore\": 900\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/match-results/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results", "1"]
+            }
+          }
+        },
+        {
+          "name": "删除比赛成绩",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/match-results/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results", "1"]
+            }
+          }
+        },
+        {
+          "name": "获取轮次成绩汇总",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/match-results/round-summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results", "round-summary"],
+              "query": [
+                {
+                  "key": "competitionId",
+                  "value": "{{competition_id}}"
+                },
+                {
+                  "key": "roundNumber",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取比赛总成绩排名",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/match-results/competition-ranking",
+              "host": ["{{base_url}}"],
+              "path": ["api", "match-results", "competition-ranking"],
+              "query": [
+                {
+                  "key": "competitionId",
+                  "value": "{{competition_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "晋级管理",
+      "item": [
+        {
+          "name": "个人赛晋级",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competition_id}}\",\n  \"playerIds\": [1, 2, 3, 4],\n  \"targetRound\": 2,\n  \"initialScore\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/advancement/players/advance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "advancement", "players", "advance"]
+            }
+          }
+        },
+        {
+          "name": "团队赛晋级",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competition_id}}\",\n  \"teamIds\": [1, 2, 3, 4],\n  \"targetRound\": 2,\n  \"initialScore\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/advancement/teams/advance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "advancement", "teams", "advance"]
+            }
+          }
+        },
+        {
+          "name": "获取个人轮次状态",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/advancement/players/round-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "advancement", "players", "round-status"],
+              "query": [
+                {
+                  "key": "competitionId",
+                  "value": "{{competition_id}}"
+                },
+                {
+                  "key": "roundNumber",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "获取团队轮次状态",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/advancement/teams/round-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "advancement", "teams", "round-status"],
+              "query": [
+                {
+                  "key": "competitionId",
+                  "value": "{{competition_id}}"
+                },
+                {
+                  "key": "roundNumber",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "管理员功能",
+      "item": [
+        {
+          "name": "管理员登录",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('auth_token', response.data.token);",
+                  "        console.log('Admin token saved:', response.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "创建管理员",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newadmin\",\n  \"password\": \"password123\",\n  \"name\": \"新管理员\",\n  \"email\": \"newadmin@example.com\",\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "create"]
+            }
+          }
+        },
+        {
+          "name": "获取所有管理员",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "list"]
+            }
+          }
+        },
+        {
+          "name": "获取激活管理员",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/active",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "active"]
+            }
+          }
+        },
+        {
+          "name": "更新管理员信息",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"更新后的管理员名称\",\n  \"email\": \"updated@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "1"]
+            }
+          }
+        },
+        {
+          "name": "删除管理员",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "比赛状态管理",
+      "item": [
+        {
+          "name": "获取比赛状态",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competition-status/{{competition_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-status", "{{competition_id}}"]
+            }
+          }
+        },
+        {
+          "name": "更新比赛状态",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/competition-status/{{competition_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-status", "{{competition_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "比赛规则管理",
+      "item": [
+        {
+          "name": "创建比赛规则",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleName\": \"标准麻将规则\",\n  \"description\": \"适用于正式比赛的麻将规则\",\n  \"ruleContent\": \"详细的规则内容...\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/competition-rules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-rules"]
+            }
+          }
+        },
+        {
+          "name": "获取所有规则",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competition-rules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-rules"]
+            }
+          }
+        },
+        {
+          "name": "根据ID获取规则",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competition-rules/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-rules", "1"]
+            }
+          }
+        },
+        {
+          "name": "更新规则",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ruleName\": \"更新后的规则名称\",\n  \"description\": \"更新后的规则描述\",\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/competition-rules/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-rules", "1"]
+            }
+          }
+        },
+        {
+          "name": "删除规则",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/competition-rules/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "competition-rules", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
