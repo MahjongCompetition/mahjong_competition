@@ -1,16 +1,10 @@
 package com.rogister.mjcompetition;
 
-import com.rogister.mjcompetition.entity.Competition;
-import com.rogister.mjcompetition.entity.CompetitionRound;
-import com.rogister.mjcompetition.entity.MatchResult;
-import com.rogister.mjcompetition.entity.Player;
-import com.rogister.mjcompetition.service.MatchResultService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
