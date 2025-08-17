@@ -129,22 +129,17 @@ public class CompetitionStatusService {
              for (TeamMember member : teamMembers) {
                  Player player = member.getPlayer();
                  
-                 // 检查该玩家是否在该轮次有个人状态
-                 Optional<PlayerRoundStatus> playerRoundStatus = playerRoundStatusRepository
-                         .findByPlayerAndCompetitionAndRoundNumber(player, teamRoundStatus.getCompetition(), roundNumber);
-                 
-                 if (playerRoundStatus.isPresent()) {
-                     // 构建个人状态信息
-                     CompetitionStatusResponse.PlayerStatusInfo playerStatus = buildPlayerStatusInfo(playerRoundStatus.get());
-                     allPlayerStatuses.add(playerStatus);
-                 }
+                 // 直接为团队赛中的玩家构建状态信息
+                 CompetitionStatusResponse.PlayerStatusInfo playerStatus = buildTeamPlayerStatusInfo(
+                         player, teamRoundStatus.getCompetition(), roundNumber);
+                 allPlayerStatuses.add(playerStatus);
              }
          }
          
-                 // 按当前轮次得分从高到低排序
-        return allPlayerStatuses.stream()
-                .sorted(Comparator.comparing(CompetitionStatusResponse.PlayerStatusInfo::getCurrentRoundScore).reversed())
-                .collect(Collectors.toList());
+         // 按当前轮次得分从高到低排序
+         return allPlayerStatuses.stream()
+                 .sorted(Comparator.comparing(CompetitionStatusResponse.PlayerStatusInfo::getCurrentRoundScore).reversed())
+                 .collect(Collectors.toList());
      }
     
     /**
@@ -172,8 +167,43 @@ public class CompetitionStatusService {
         
         // 个人不需要totalScore，不设置此字段
         
-        // 获取比赛统计数据
-        Map<String, Object> stats = getPlayerMatchStats(roundStatus.getCompetition().getId(), player.getId());
+        // 获取当前轮次的比赛统计数据
+        Map<String, Object> stats = getPlayerRoundMatchStats(roundStatus.getCompetition().getId(), roundStatus.getRoundNumber(), player.getId());
+        info.setAppearanceCount((Integer) stats.get("appearanceCount"));
+        info.setAveragePosition((Double) stats.get("averagePosition"));
+        info.setFirstPlaceCount((Integer) stats.get("firstPlaceCount"));
+        info.setSecondPlaceCount((Integer) stats.get("secondPlaceCount"));
+        info.setThirdPlaceCount((Integer) stats.get("thirdPlaceCount"));
+        info.setFourthPlaceCount((Integer) stats.get("fourthPlaceCount"));
+        
+        return info;
+    }
+    
+    /**
+     * 构建团队赛中的玩家状态信息
+     */
+    private CompetitionStatusResponse.PlayerStatusInfo buildTeamPlayerStatusInfo(Player player, Competition competition, Integer roundNumber) {
+        CompetitionStatusResponse.PlayerStatusInfo info = new CompetitionStatusResponse.PlayerStatusInfo();
+        
+        info.setPlayerId(player.getId());
+        info.setPlayerName(player.getNickname());
+        info.setUsername(player.getUsername());
+        info.setInitialScore(0); // 团队赛中个人没有初始分数
+        info.setStatus("ACTIVE"); // 团队赛中参与的玩家状态默认为活跃
+        
+        // 使用PT分数计算当轮得分
+        Double currentRoundPtScore = matchResultService.getPlayerPtScoreSum(
+                competition.getId(), 
+                roundNumber, 
+                player.getId());
+        
+        // 将PT分数转换为整数显示
+        int currentRoundScore = (int) Math.round(currentRoundPtScore);
+        info.setCurrentRoundScore(currentRoundScore);
+        info.setTotalScore(currentRoundScore); // 团队赛中个人总分等于当轮得分
+        
+        // 获取当前轮次的比赛统计数据
+        Map<String, Object> stats = getPlayerRoundMatchStats(competition.getId(), roundNumber, player.getId());
         info.setAppearanceCount((Integer) stats.get("appearanceCount"));
         info.setAveragePosition((Double) stats.get("averagePosition"));
         info.setFirstPlaceCount((Integer) stats.get("firstPlaceCount"));
@@ -213,8 +243,8 @@ public class CompetitionStatusService {
         info.setCurrentRoundScore(currentRoundScore);
         info.setTotalScore(currentRoundScore);
         
-        // 获取团队比赛统计数据
-        Map<String, Object> teamStats = getTeamMatchStats(roundStatus.getCompetition().getId(), team.getId());
+        // 获取当前轮次的团队比赛统计数据
+        Map<String, Object> teamStats = getTeamRoundMatchStats(roundStatus.getCompetition().getId(), roundStatus.getRoundNumber(), team.getId());
         info.setAppearanceCount((Integer) teamStats.get("appearanceCount"));
         info.setAveragePosition((Double) teamStats.get("averagePosition"));
         info.setFirstPlaceCount((Integer) teamStats.get("firstPlaceCount"));
@@ -222,8 +252,8 @@ public class CompetitionStatusService {
         info.setThirdPlaceCount((Integer) teamStats.get("thirdPlaceCount"));
         info.setFourthPlaceCount((Integer) teamStats.get("fourthPlaceCount"));
         
-        // 获取队员得分详情
-        info.setMemberScores(getTeamMemberScores(team.getId(), roundStatus.getCompetition().getId()));
+        // 获取队员当前轮次的得分详情
+        info.setMemberScores(getTeamMemberRoundScores(team.getId(), roundStatus.getCompetition().getId(), roundStatus.getRoundNumber()));
         
         return info;
     }
@@ -471,5 +501,173 @@ public class CompetitionStatusService {
         }
         
         return null; // 玩家没有参与这场比赛
+    }
+    
+    /**
+     * 获取玩家在指定轮次的比赛统计数据
+     */
+    private Map<String, Object> getPlayerRoundMatchStats(Long competitionId, Integer roundNumber, Long playerId) {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 获取该玩家在该轮次的所有比赛结果
+        List<MatchResult> matchResults = matchResultRepository
+                .findByCompetitionIdAndRoundNumberAndPlayerId(competitionId, roundNumber, playerId);
+        
+        if (matchResults.isEmpty()) {
+            stats.put("appearanceCount", 0);
+            stats.put("averagePosition", 0.0);
+            stats.put("firstPlaceCount", 0);
+            stats.put("secondPlaceCount", 0);
+            stats.put("thirdPlaceCount", 0);
+            stats.put("fourthPlaceCount", 0);
+            return stats;
+        }
+        
+        stats.put("appearanceCount", matchResults.size());
+        
+        // 计算平均顺位和各顺位次数
+        int firstPlaceCount = 0;
+        int secondPlaceCount = 0;
+        int thirdPlaceCount = 0;
+        int fourthPlaceCount = 0;
+        double totalPosition = 0.0;
+        
+        for (MatchResult matchResult : matchResults) {
+            // 计算该玩家在这场比赛的排名
+            int playerRank = calculatePlayerRankInMatch(matchResult, playerId);
+            totalPosition += playerRank;
+            
+            // 统计各顺位次数
+            switch (playerRank) {
+                case 1: firstPlaceCount++; break;
+                case 2: secondPlaceCount++; break;
+                case 3: thirdPlaceCount++; break;
+                case 4: fourthPlaceCount++; break;
+            }
+        }
+        
+        stats.put("averagePosition", totalPosition / matchResults.size());
+        stats.put("firstPlaceCount", firstPlaceCount);
+        stats.put("secondPlaceCount", secondPlaceCount);
+        stats.put("thirdPlaceCount", thirdPlaceCount);
+        stats.put("fourthPlaceCount", fourthPlaceCount);
+        
+        return stats;
+    }
+    
+    /**
+     * 获取团队在指定轮次的比赛统计数据
+     */
+    private Map<String, Object> getTeamRoundMatchStats(Long competitionId, Integer roundNumber, Long teamId) {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // 获取团队成员
+        List<TeamMember> teamMembers = teamMemberRepository.findByTeamIdAndIsActiveTrue(teamId);
+        
+        if (teamMembers.isEmpty()) {
+            stats.put("appearanceCount", 0);
+            stats.put("averagePosition", 0.0);
+            stats.put("firstPlaceCount", 0);
+            stats.put("secondPlaceCount", 0);
+            stats.put("thirdPlaceCount", 0);
+            stats.put("fourthPlaceCount", 0);
+            return stats;
+        }
+        
+        // 获取该轮次所有涉及团队成员的比赛记录
+        Set<MatchResult> teamMatchResults = new HashSet<>();
+        for (TeamMember member : teamMembers) {
+            List<MatchResult> memberMatches = matchResultRepository
+                    .findByCompetitionIdAndRoundNumberAndPlayerId(competitionId, roundNumber, member.getPlayer().getId());
+            teamMatchResults.addAll(memberMatches);
+        }
+        
+        List<MatchResult> matchResults = new ArrayList<>(teamMatchResults);
+        
+        if (matchResults.isEmpty()) {
+            stats.put("appearanceCount", 0);
+            stats.put("averagePosition", 0.0);
+            stats.put("firstPlaceCount", 0);
+            stats.put("secondPlaceCount", 0);
+            stats.put("thirdPlaceCount", 0);
+            stats.put("fourthPlaceCount", 0);
+            return stats;
+        }
+        
+        stats.put("appearanceCount", matchResults.size());
+        
+        // 计算团队在每场比赛的排名
+        int firstPlaceCount = 0;
+        int secondPlaceCount = 0;
+        int thirdPlaceCount = 0;
+        int fourthPlaceCount = 0;
+        double totalPosition = 0.0;
+        
+        for (MatchResult matchResult : matchResults) {
+            // 计算团队在这场比赛的排名
+            int teamRank = calculateTeamRankInMatch(matchResult, teamId);
+            totalPosition += teamRank;
+            
+            // 统计各顺位次数
+            switch (teamRank) {
+                case 1: firstPlaceCount++; break;
+                case 2: secondPlaceCount++; break;
+                case 3: thirdPlaceCount++; break;
+                case 4: fourthPlaceCount++; break;
+            }
+        }
+        
+        stats.put("averagePosition", totalPosition / matchResults.size());
+        stats.put("firstPlaceCount", firstPlaceCount);
+        stats.put("secondPlaceCount", secondPlaceCount);
+        stats.put("thirdPlaceCount", thirdPlaceCount);
+        stats.put("fourthPlaceCount", fourthPlaceCount);
+        
+        return stats;
+    }
+    
+    /**
+     * 获取团队成员在指定轮次的得分详情
+     */
+    private List<CompetitionStatusResponse.TeamMemberScore> getTeamMemberRoundScores(Long teamId, Long competitionId, Integer roundNumber) {
+        // 获取团队成员
+        List<TeamMember> teamMembers = teamMemberRepository.findByTeamIdAndIsActiveTrue(teamId);
+        
+        return teamMembers.stream()
+                .map(member -> {
+                    CompetitionStatusResponse.TeamMemberScore score = new CompetitionStatusResponse.TeamMemberScore();
+                    
+                    Player player = member.getPlayer();
+                    score.setPlayerId(player.getId());
+                    score.setPlayerName(player.getNickname());
+                    score.setUsername(player.getUsername());
+                    
+                    // 获取该玩家在当前轮次的个人得分总和
+                    Integer individualScore = getPlayerRoundIndividualScore(competitionId, roundNumber, player.getId());
+                    score.setIndividualScore(individualScore);
+                    
+                    return score;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 获取玩家在指定轮次的个人得分
+     */
+    private Integer getPlayerRoundIndividualScore(Long competitionId, Integer roundNumber, Long playerId) {
+        // 获取该玩家在该轮次的所有比赛结果得分总和
+        List<MatchResult> matchResults = matchResultRepository
+                .findByCompetitionIdAndRoundNumberAndPlayerId(competitionId, roundNumber, playerId);
+        
+        int totalScore = 0;
+        for (MatchResult matchResult : matchResults) {
+            // 获取该玩家在这场比赛的得分
+            Integer playerScore = getPlayerScoreInMatch(matchResult, playerId);
+            if (playerScore != null) {
+                totalScore += playerScore;
+            }
+        }
+        
+        return totalScore;
     }
 }

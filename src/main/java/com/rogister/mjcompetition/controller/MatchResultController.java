@@ -9,7 +9,10 @@ import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.service.CompetitionService;
 import com.rogister.mjcompetition.service.MatchResultService;
 import com.rogister.mjcompetition.service.PlayerService;
+import com.rogister.mjcompetition.service.TeamService;
 import com.rogister.mjcompetition.repository.PlayerRoundStatusRepository;
+import com.rogister.mjcompetition.repository.TeamRoundStatusRepository;
+import com.rogister.mjcompetition.repository.MatchResultRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +34,16 @@ public class MatchResultController {
     private PlayerService playerService;
     
     @Autowired
+    private TeamService teamService;
+    
+    @Autowired
     private PlayerRoundStatusRepository playerRoundStatusRepository;
+    
+    @Autowired
+    private TeamRoundStatusRepository teamRoundStatusRepository;
+    
+    @Autowired
+    private MatchResultRepository matchResultRepository;
     
     /**
      * 创建比赛成绩
@@ -53,6 +65,9 @@ public class MatchResultController {
             // 验证并获取比赛对象
             Competition competition = competitionService.findById(request.getCompetitionId())
                     .orElseThrow(() -> new RuntimeException("比赛不存在，ID: " + request.getCompetitionId()));
+            
+            // 验证轮次是否允许录入成绩
+            validateRoundForResultEntry(competition, request.getRoundNumber());
             
             // 验证并获取四个玩家对象
             Player eastPlayer = playerService.findById(request.getEastPlayerId())
@@ -243,17 +258,69 @@ public class MatchResultController {
      * 验证玩家是否有资格参加该轮次比赛
      */
     private void validatePlayerRoundEligibility(Player player, Competition competition, Integer roundNumber, String position) {
-        // 查找玩家在该轮次的状态
-        boolean eligible = playerRoundStatusRepository
-                .findByPlayerAndCompetitionAndRoundNumber(player, competition, roundNumber)
-                .map(status -> !status.getIsEliminated())  // 未被淘汰的玩家可以参赛
-                .orElse(false);  // 如果没有找到状态记录，表示不能参赛
+        boolean eligible = false;
+        
+        if (competition.getCompetitionType() == Competition.CompetitionType.INDIVIDUAL) {
+            // 个人赛：检查PlayerRoundStatus
+            eligible = playerRoundStatusRepository
+                    .findByPlayerAndCompetitionAndRoundNumber(player, competition, roundNumber)
+                    .map(status -> !status.getIsEliminated())  // 未被淘汰的玩家可以参赛
+                    .orElse(false);  // 如果没有找到状态记录，表示不能参赛
+        } else if (competition.getCompetitionType() == Competition.CompetitionType.TEAM) {
+            // 团队赛：检查玩家所属团队的TeamRoundStatus
+            // 首先找到玩家所属的团队
+            var teamOpt = teamService.findTeamByPlayerId(player.getId());
+            if (teamOpt.isPresent()) {
+                var team = teamOpt.get();
+                // 检查团队在该轮次的状态
+                eligible = teamRoundStatusRepository
+                        .findByTeamAndCompetitionAndRoundNumber(team, competition, roundNumber)
+                        .map(status -> !status.getIsEliminated())  // 团队未被淘汰
+                        .orElse(false);  // 如果没有找到团队状态记录，表示不能参赛
+            }
+        }
         
         if (!eligible) {
-            throw new RuntimeException(position + "玩家(ID:" + player.getId() + ", 姓名:" + player.getNickname() + ")没有资格参加第" + roundNumber + "轮比赛");
+            String competitionTypeStr = competition.getCompetitionType() == Competition.CompetitionType.TEAM ? "团队赛" : "个人赛";
+            throw new RuntimeException(position + "玩家(ID:" + player.getId() + ", 姓名:" + player.getNickname() + ")没有资格参加第" + roundNumber + "轮" + competitionTypeStr + "比赛");
         }
     }
     
+    /**
+     * 验证轮次是否允许录入成绩
+     */
+    private void validateRoundForResultEntry(Competition competition, Integer roundNumber) {
+        // 获取比赛成绩记录中的最大轮次
+        Integer maxResultRound = matchResultRepository.findMaxRoundNumberByCompetitionId(competition.getId());
+        
+        // 根据比赛类型获取轮次状态中的最大轮次
+        Integer maxStatusRound = null;
+        if (competition.getCompetitionType() == Competition.CompetitionType.INDIVIDUAL) {
+            maxStatusRound = playerRoundStatusRepository.findMaxRoundNumberByCompetitionId(competition.getId());
+        } else if (competition.getCompetitionType() == Competition.CompetitionType.TEAM) {
+            maxStatusRound = teamRoundStatusRepository.findMaxRoundNumberByCompetitionId(competition.getId());
+        }
+        
+        // 取两者中的最大值作为当前实际最大轮次
+        Integer actualMaxRound = null;
+        if (maxResultRound != null && maxStatusRound != null) {
+            actualMaxRound = Math.max(maxResultRound, maxStatusRound);
+        } else if (maxResultRound != null) {
+            actualMaxRound = maxResultRound;
+        } else if (maxStatusRound != null) {
+            actualMaxRound = maxStatusRound;
+        }
+        
+        // 如果存在更高轮次的成绩记录，不允许补录之前轮次的成绩
+        if (actualMaxRound != null && roundNumber < actualMaxRound) {
+            throw new RuntimeException("不允许补录第" + roundNumber + "轮成绩，因为已存在第" + actualMaxRound + "轮的数据");
+        }
+        
+        // 如果录入的轮次比当前最高轮次大于1，也不允许（防止跳跃录入）
+        if (actualMaxRound != null && roundNumber > actualMaxRound + 1) {
+            throw new RuntimeException("不允许跳跃录入第" + roundNumber + "轮成绩，当前最高轮次为第" + actualMaxRound + "轮，只能录入第" + (actualMaxRound + 1) + "轮的成绩");
+        }
+    }
 
     
     /**

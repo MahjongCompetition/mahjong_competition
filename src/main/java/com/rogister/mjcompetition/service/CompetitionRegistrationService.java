@@ -102,14 +102,14 @@ public class CompetitionRegistrationService {
         
         Team team = teamOpt.get();
         
-        // 检查玩家是否是队长
-        if (!teamService.isCaptain(teamId, player.getId())) {
-            throw new RuntimeException("只有队长可以报名团队赛");
+        // 首先检查玩家是否是该团队的成员
+        if (!teamService.isTeamMember(teamId, player.getId())) {
+            throw new RuntimeException("您不是该团队的成员，无法使用此团队报名");
         }
         
-        // 检查玩家是否是团队成员
-        if (!teamService.isTeamMember(teamId, player.getId())) {
-            throw new RuntimeException("您不是该团队成员，无法报名");
+        // 然后检查玩家是否是队长（只有队长才能代表团队报名）
+        if (!teamService.isCaptain(teamId, player.getId())) {
+            throw new RuntimeException("只有队长可以代表团队报名比赛");
         }
         
         // 检查团队是否已经报名

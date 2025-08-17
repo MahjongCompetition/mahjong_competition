@@ -1,8 +1,11 @@
 package com.rogister.mjcompetition.controller;
 
 import com.rogister.mjcompetition.dto.ApiResponse;
+import com.rogister.mjcompetition.dto.PlayerTeamsResponse;
 import com.rogister.mjcompetition.entity.Player;
+import com.rogister.mjcompetition.entity.Team;
 import com.rogister.mjcompetition.service.PlayerService;
+import com.rogister.mjcompetition.service.TeamService;
 import com.rogister.mjcompetition.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,9 @@ public class PlayerController {
     
     @Autowired
     private PlayerService playerService;
+    
+    @Autowired
+    private TeamService teamService;
     
     @Autowired
     private JwtUtil jwtUtil;
@@ -117,6 +123,64 @@ public class PlayerController {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.error("修改密码失败"));
+        }
+    }
+    
+    /**
+     * 获取当前玩家的团队信息
+     * @param type 可选参数：
+     *             - 不传或为空：返回我加入的和我创建的所有团队
+     *             - "created"：只返回我创建的团队
+     */
+    @GetMapping("/my-teams")
+    public ResponseEntity<ApiResponse<PlayerTeamsResponse>> getMyTeams(
+            HttpServletRequest request,
+            @RequestParam(value = "type", required = false) String type) {
+        try {
+            // 从请求头中获取JWT token并提取玩家信息
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.ok(ApiResponse.error("未提供有效的认证token"));
+            }
+            
+            String token = authHeader.substring(7);
+            String username;
+            try {
+                username = jwtUtil.extractUsername(token);
+            } catch (Exception e) {
+                return ResponseEntity.ok(ApiResponse.error("Token格式无效"));
+            }
+            
+            if (!jwtUtil.validateToken(token, username)) {
+                return ResponseEntity.ok(ApiResponse.error("Token无效或已过期"));
+            }
+            
+            // 根据用户名查找玩家
+            Player player = playerService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("玩家不存在，用户名: " + username));
+            
+            Long playerId = player.getId();
+            
+            // 根据参数决定返回的团队类型
+            List<Team> createdTeams = teamService.findByCaptainId(playerId);
+            List<Team> joinedTeams;
+            
+            if ("created".equals(type)) {
+                // 只返回我创建的团队
+                joinedTeams = createdTeams; // 创建的团队也是加入的团队
+                PlayerTeamsResponse response = new PlayerTeamsResponse(createdTeams, joinedTeams);
+                return ResponseEntity.ok(ApiResponse.success("获取我创建的团队信息成功", response));
+            } else {
+                // 默认情况：返回我加入的和我创建的所有团队
+                joinedTeams = teamService.findAllTeamsByPlayerId(playerId);
+                PlayerTeamsResponse response = new PlayerTeamsResponse(createdTeams, joinedTeams);
+                return ResponseEntity.ok(ApiResponse.success("获取团队信息成功", response));
+            }
+            
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("获取团队信息失败: " + e.getMessage()));
         }
     }
     

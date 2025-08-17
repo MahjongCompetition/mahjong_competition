@@ -216,4 +216,17 @@ public class TeamService {
     public boolean isTeamMember(Long teamId, Long playerId) {
         return teamMemberRepository.existsByTeamIdAndPlayerIdAndIsActiveTrue(teamId, playerId);
     }
+    
+    /**
+     * 获取玩家加入的所有团队（包括历史团队）
+     */
+    public List<Team> findAllTeamsByPlayerId(Long playerId) {
+        List<TeamMember> memberships = teamMemberRepository.findByPlayerIdAndIsActiveTrue(playerId);
+        return memberships.stream()
+                .map(membership -> teamRepository.findById(membership.getTeamId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(Team::getIsActive) // 只返回活跃的团队
+                .toList();
+    }
 }

@@ -2,10 +2,14 @@ package com.rogister.mjcompetition.controller;
 
 import com.rogister.mjcompetition.dto.ApiResponse;
 import com.rogister.mjcompetition.dto.CompetitionRegistrationRequest;
+import com.rogister.mjcompetition.dto.TeamCompetitionRegistrationRequest;
 import com.rogister.mjcompetition.entity.Player;
 import com.rogister.mjcompetition.entity.PlayerCompetitionRegistration;
+import com.rogister.mjcompetition.entity.TeamCompetitionRegistration;
 import com.rogister.mjcompetition.service.PlayerCompetitionRegistrationService;
+import com.rogister.mjcompetition.service.CompetitionRegistrationService;
 import com.rogister.mjcompetition.service.PlayerService;
+import com.rogister.mjcompetition.service.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,12 @@ public class PlayerCompetitionRegistrationController {
     
     @Autowired
     private PlayerCompetitionRegistrationService registrationService;
+    
+    @Autowired
+    private CompetitionRegistrationService competitionRegistrationService;
+    
+    @Autowired
+    private TeamService teamService;
     
     @Autowired
     private PlayerService playerService;
@@ -48,6 +58,58 @@ public class PlayerCompetitionRegistrationController {
             
             PlayerCompetitionRegistration registration = registrationService.registerForCompetition(playerId, request.getCompetitionId());
             return ResponseEntity.ok(ApiResponse.success("报名成功", registration));
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("服务器内部错误"));
+        }
+    }
+    
+    /**
+     * 团队报名比赛
+     */
+    @PostMapping("/register-team")
+    public ResponseEntity<ApiResponse<TeamCompetitionRegistration>> registerTeamForCompetition(
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody TeamCompetitionRegistrationRequest request) {
+        try {
+            // 从Authorization header中提取token
+            String token = authorization.replace("Bearer ", "");
+            
+            // 验证token并获取用户名
+            String username = playerService.extractUsernameFromToken(token);
+            if (username == null) {
+                return ResponseEntity.ok(ApiResponse.error("无效的token"));
+            }
+            
+            // 根据用户名获取玩家信息
+            Player player = playerService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("玩家不存在，用户名: " + username));
+            
+            Long playerId = player.getId();
+            
+            // 验证teamId参数
+            if (request.getTeamId() == null) {
+                return ResponseEntity.ok(ApiResponse.error("团队ID不能为空"));
+            }
+            
+            // 前置验证：检查用户是否有权限使用这个团队
+            if (!teamService.isTeamMember(request.getTeamId(), playerId)) {
+                return ResponseEntity.ok(ApiResponse.error("您不是该团队的成员，无法使用此团队报名"));
+            }
+            
+            if (!teamService.isCaptain(request.getTeamId(), playerId)) {
+                return ResponseEntity.ok(ApiResponse.error("只有队长可以代表团队报名比赛"));
+            }
+            
+            // 调用统一报名接口进行团队报名
+            Object registration = competitionRegistrationService.registerForCompetition(playerId, request.getCompetitionId(), request.getTeamId());
+            
+            if (registration instanceof TeamCompetitionRegistration) {
+                return ResponseEntity.ok(ApiResponse.success("团队报名成功", (TeamCompetitionRegistration) registration));
+            } else {
+                return ResponseEntity.ok(ApiResponse.error("报名失败：比赛类型不匹配，请确认这是团队赛"));
+            }
         } catch (RuntimeException e) {
             return ResponseEntity.ok(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {

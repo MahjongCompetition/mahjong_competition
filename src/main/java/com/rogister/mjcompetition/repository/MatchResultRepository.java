@@ -116,4 +116,10 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, Long> 
            "WHERE mr.competition.id = :competitionId AND mr.roundNumber = :roundNumber " +
            "AND (mr.eastPlayer.id = :playerId OR mr.southPlayer.id = :playerId OR mr.westPlayer.id = :playerId OR mr.northPlayer.id = :playerId)")
     Double getPlayerPtScoreSum(@Param("competitionId") Long competitionId, @Param("roundNumber") Integer roundNumber, @Param("playerId") Long playerId);
+    
+    /**
+     * 根据比赛ID查找最大轮次号
+     */
+    @Query("SELECT MAX(mr.roundNumber) FROM MatchResult mr WHERE mr.competition.id = :competitionId")
+    Integer findMaxRoundNumberByCompetitionId(@Param("competitionId") Long competitionId);
 } 
