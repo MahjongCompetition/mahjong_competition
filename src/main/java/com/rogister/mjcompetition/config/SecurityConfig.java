@@ -31,7 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/player/register").permitAll() // 玩家注册
                         .requestMatchers("/api/player/login").permitAll() // 玩家登录
                         .requestMatchers("/api/admin/login").permitAll() // 管理员登录
-                        .requestMatchers("/api/competitions/list").permitAll() // 比赛列表查看
+                        .requestMatchers("/api/competitions").permitAll() // 比赛列表查看
                         .requestMatchers("/api/competition-status/**").permitAll() // 比赛状态查询（无需鉴权）
 
                         // Swagger相关接口 - 无需认证
