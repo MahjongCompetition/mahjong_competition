@@ -33,6 +33,9 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     
+    // SpringDoc OpenAPI (Swagger) - 兼容Spring Boot 3.5.x
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+    
     // 数据库驱动
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'  // 远程MariaDB
     runtimeOnly 'com.h2database:h2'                     // 本地H2数据库（测试用）

@@ -13,49 +13,53 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-    
+
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
-    
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                // 公开接口 - 无需认证
-                .requestMatchers("/api/player/register").permitAll()      // 玩家注册
-                .requestMatchers("/api/player/login").permitAll()         // 玩家登录
-                .requestMatchers("/api/admin/login").permitAll()          // 管理员登录
-                .requestMatchers("/api/competitions/list").permitAll()    // 比赛列表查看
-                .requestMatchers("/api/competition-status/**").permitAll() // 比赛状态查询（无需鉴权）
-                
-                // 玩家权限 - 需要PLAYER角色
-                .requestMatchers("/api/player/**").hasAnyAuthority("PLAYER")
-                .requestMatchers("/api/teams/**").hasAnyAuthority("PLAYER")
-                .requestMatchers("/api/player-competition-registrations/**").hasAnyAuthority("PLAYER")
-                
-                // 管理员权限 - 需要ADMIN角色
-                .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                .requestMatchers("/api/competition-rules/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                .requestMatchers("/api/competitions/create").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                .requestMatchers("/api/competitions/*/update").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                .requestMatchers("/api/competitions/*/delete").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                .requestMatchers("/api/match-results/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                .requestMatchers("/api/advancement/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
-                
-                // 其他请求需要认证
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        // 公开接口 - 无需认证
+                        .requestMatchers("/api/player/register").permitAll() // 玩家注册
+                        .requestMatchers("/api/player/login").permitAll() // 玩家登录
+                        .requestMatchers("/api/admin/login").permitAll() // 管理员登录
+                        .requestMatchers("/api/competitions/list").permitAll() // 比赛列表查看
+                        .requestMatchers("/api/competition-status/**").permitAll() // 比赛状态查询（无需鉴权）
+
+                        // Swagger相关接口 - 无需认证
+                        .requestMatchers("/swagger-ui/**").permitAll() // Swagger UI
+                        .requestMatchers("/swagger-ui.html").permitAll() // Swagger UI 主页
+                        .requestMatchers("/api-docs/**").permitAll() // OpenAPI文档
+                        .requestMatchers("/v3/api-docs/**").permitAll() // OpenAPI v3文档
+
+                        // 玩家权限 - 需要PLAYER角色
+                        .requestMatchers("/api/player/**").hasAnyAuthority("PLAYER")
+                        .requestMatchers("/api/teams/**").hasAnyAuthority("PLAYER")
+                        .requestMatchers("/api/player-competition-registrations/**").hasAnyAuthority("PLAYER")
+
+                        // 管理员权限 - 需要ADMIN角色
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/competition-rules/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/competitions/create").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/competitions/*/update").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/competitions/*/delete").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/match-results/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/advancement/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
+
+                        // 其他请求需要认证
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

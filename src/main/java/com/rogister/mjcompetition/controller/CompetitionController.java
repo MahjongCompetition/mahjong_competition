@@ -9,21 +9,35 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/competitions")
 @CrossOrigin(origins = "*")
+@Tag(name = "比赛管理", description = "比赛的创建、查询、更新、删除等功能")
 public class CompetitionController {
-    
+
     @Autowired
     private CompetitionService competitionService;
-    
+
     /**
      * 创建新比赛
      */
+    @Operation(summary = "创建比赛", description = "创建新的比赛")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "创建成功", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "创建失败")
+    })
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse<Competition>> createCompetition(@RequestBody CompetitionCreateRequest request) {
+    public ResponseEntity<ApiResponse<Competition>> createCompetition(
+            @Parameter(description = "比赛创建请求信息", required = true) @RequestBody CompetitionCreateRequest request) {
         try {
             // 验证请求参数
             if (request.getName() == null || request.getName().trim().isEmpty()) {
@@ -38,7 +52,7 @@ public class CompetitionController {
             if (request.getRegistrationEndTime() == null) {
                 return ResponseEntity.ok(ApiResponse.error("报名结束时间不能为空"));
             }
-            
+
             // 将DTO转换为实体
             Competition competition = new Competition();
             competition.setCompetitionName(request.getName().trim());
@@ -49,12 +63,12 @@ public class CompetitionController {
             competition.setRegistrationDeadline(request.getRegistrationEndTime());
             competition.setStartTime(request.getStartTime());
             competition.setEndTime(request.getEndTime());
-            
+
             // 设置规则
             CompetitionRule rule = new CompetitionRule();
             rule.setId(request.getRuleId());
             competition.setRule(rule);
-            
+
             Competition createdCompetition = competitionService.createCompetition(competition);
             return ResponseEntity.ok(ApiResponse.success("创建比赛成功", createdCompetition));
         } catch (IllegalArgumentException e) {
@@ -65,7 +79,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("服务器内部错误"));
         }
     }
-    
+
     /**
      * 获取所有比赛
      */
@@ -78,7 +92,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("获取比赛列表失败"));
         }
     }
-    
+
     /**
      * 根据ID获取比赛
      */
@@ -92,7 +106,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("获取比赛信息失败"));
         }
     }
-    
+
     /**
      * 根据比赛名称获取比赛
      */
@@ -106,7 +120,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("获取比赛信息失败"));
         }
     }
-    
+
     /**
      * 根据比赛类型获取比赛
      */
@@ -122,7 +136,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("获取比赛列表失败"));
         }
     }
-    
+
     /**
      * 根据比赛规则获取比赛
      */
@@ -137,7 +151,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("获取比赛列表失败"));
         }
     }
-    
+
     /**
      * 根据比赛名称搜索比赛
      */
@@ -150,12 +164,13 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("搜索比赛失败"));
         }
     }
-    
+
     /**
      * 更新比赛信息
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Competition>> updateCompetition(@PathVariable Long id, @RequestBody Competition competitionDetails) {
+    public ResponseEntity<ApiResponse<Competition>> updateCompetition(@PathVariable Long id,
+            @RequestBody Competition competitionDetails) {
         try {
             Competition updatedCompetition = competitionService.updateCompetition(id, competitionDetails);
             return ResponseEntity.ok(ApiResponse.success("更新比赛成功", updatedCompetition));
@@ -165,7 +180,7 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("更新比赛失败"));
         }
     }
-    
+
     /**
      * 删除比赛
      */
@@ -180,4 +195,4 @@ public class CompetitionController {
             return ResponseEntity.ok(ApiResponse.error("删除比赛失败"));
         }
     }
-} 
+}

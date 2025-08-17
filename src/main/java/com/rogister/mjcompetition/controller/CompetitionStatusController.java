@@ -7,9 +7,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @RestController
 @RequestMapping("/api/competition-status")
 @CrossOrigin(origins = "*")
+@Tag(name = "比赛状态", description = "比赛状态查询功能，无需认证的公开接口")
 public class CompetitionStatusController {
     
     @Autowired
@@ -19,10 +27,16 @@ public class CompetitionStatusController {
      * 查询比赛状态
      * 无需鉴权，公开接口
      */
+    @Operation(summary = "查询指定轮次比赛状态", description = "查询指定比赛指定轮次的状态信息")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "查询成功", 
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "比赛或轮次不存在")
+    })
     @GetMapping("/{competitionId}/round/{roundNumber}")
     public ResponseEntity<ApiResponse<CompetitionStatusResponse>> getCompetitionStatus(
-            @PathVariable Long competitionId, 
-            @PathVariable Integer roundNumber) {
+            @Parameter(description = "比赛ID", required = true, example = "1") @PathVariable Long competitionId, 
+            @Parameter(description = "轮次编号", required = true, example = "1") @PathVariable Integer roundNumber) {
         try {
             CompetitionStatusResponse response = competitionStatusService
                     .getCompetitionStatus(competitionId, roundNumber);

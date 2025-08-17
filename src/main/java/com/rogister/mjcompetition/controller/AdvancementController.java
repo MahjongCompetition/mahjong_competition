@@ -8,12 +8,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/advancement")
 @CrossOrigin(origins = "*")
+@Tag(name = "晋级管理", description = "个人赛和团队赛的晋级管理功能")
 public class AdvancementController {
     
     @Autowired
@@ -22,8 +30,16 @@ public class AdvancementController {
     /**
      * 个人赛晋级到指定轮次
      */
+    @Operation(summary = "个人赛晋级", description = "将指定玩家晋级到指定轮次")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "晋级成功", 
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "晋级失败")
+    })
     @PostMapping("/players/advance")
-    public ResponseEntity<ApiResponse<List<PlayerRoundStatus>>> advancePlayersToRound(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<List<PlayerRoundStatus>>> advancePlayersToRound(
+            @Parameter(description = "晋级请求，包含competitionId、playerIds、targetRound、initialScore", required = true)
+            @RequestBody Map<String, Object> request) {
         try {
             Long competitionId = Long.valueOf(request.get("competitionId").toString());
             @SuppressWarnings("unchecked")

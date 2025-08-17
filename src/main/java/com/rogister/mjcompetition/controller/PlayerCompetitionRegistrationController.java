@@ -14,11 +14,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/player-competition-registrations")
 @CrossOrigin(origins = "*")
+@Tag(name = "比赛报名", description = "玩家和团队的比赛报名管理功能")
 public class PlayerCompetitionRegistrationController {
     
     @Autowired
@@ -36,10 +45,18 @@ public class PlayerCompetitionRegistrationController {
     /**
      * 玩家报名比赛
      */
+    @Operation(summary = "个人报名比赛", description = "玩家个人报名参加比赛")
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "报名成功", 
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class))),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未授权"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "报名失败")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<PlayerCompetitionRegistration>> registerForCompetition(
-            @RequestHeader("Authorization") String authorization,
-            @RequestBody CompetitionRegistrationRequest request) {
+            @Parameter(description = "JWT认证令牌", required = true) @RequestHeader("Authorization") String authorization,
+            @Parameter(description = "比赛报名请求信息", required = true) @RequestBody CompetitionRegistrationRequest request) {
         try {
             // 从Authorization header中提取token
             String token = authorization.replace("Bearer ", "");
